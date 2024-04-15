@@ -8,45 +8,51 @@ using System.Threading.Tasks;
 
 namespace ChessMinMax
 {
-    public struct PackedBoardState
+    public class PackedBoardState
     {
-        //typeEnum value
-        //|.    is black
-        //||,  /
-        //vvv v
-        //000 0 
-        //so each long can encode 16 squares, or 1/4th of the board
-        /*
-         * ___________________
-        ____0|_|_|_|_||_|_|_|_|
-        ____1|_|_|_|_||_|_|_|_|
-        ____2|_|_|_|_||_|_|_|_|
-        ____3|_|_|_|_||_|_|_|_|
-        ======================|
-        __0_4|_|_|_|_||_|_|_|_|
-        __1_5|_|_|_|_||_|_|_|_|
-        __2_6|_|_|_|_||_|_|_|_|
-        __3_7|_|_|_|_||_|_|_|_|
-              0|1|2|3||4|5|6|7|
-                      | | | | |
-                      |0|1|2|3|
-        */
+        private struct State
+        {
+            //typeEnum value
+            //|.    is black
+            //||,  /
+            //vvv v
+            //000 0 
+            //so each long can encode 16 squares, or 1/4th of the board
+            /*
+             * ___________________
+            ____0|_|_|_|_||_|_|_|_|
+            ____1|_|_|_|_||_|_|_|_|
+            ____2|_|_|_|_||_|_|_|_|
+            ____3|_|_|_|_||_|_|_|_|
+            ======================|
+            __0_4|_|_|_|_||_|_|_|_|
+            __1_5|_|_|_|_||_|_|_|_|
+            __2_6|_|_|_|_||_|_|_|_|
+            __3_7|_|_|_|_||_|_|_|_|
+                  0|1|2|3||4|5|6|7|
+                          | | | | |
+                          |0|1|2|3|
+            */
 
 
-        private long topLeft;
-        private long topRight;
-        private long bottomLeft;
-        private long bottomRight;
+            public long topLeft;
+            public long topRight;
+            public long bottomLeft;
+            public long bottomRight;
+            public  int metaData;//stores en passant and castle info, see getters and setters below
+        }
+        private State state;
+        public PackedBoardState Clone() => new PackedBoardState { state = state };
         public Piece this[int row, int col]
         {
             get
             {
                 return (row, col) switch
                 {
-                    { row: > 3, col: > 3 } => GetPieceInQuad(bottomRight, row - 4, col - 4),
-                    { row: > 3, col: < 4 } => GetPieceInQuad(bottomLeft, row - 4, col),
-                    { row: < 4, col: > 3 } => GetPieceInQuad(topRight, row, col - 4),
-                    { row: < 4, col: < 4 } => GetPieceInQuad(topLeft, row, col)
+                    { row: > 3, col: > 3 } => GetPieceInQuad(state.bottomRight, row - 4, col - 4),
+                    { row: > 3, col: < 4 } => GetPieceInQuad(state.bottomLeft, row - 4, col),
+                    { row: < 4, col: > 3 } => GetPieceInQuad(state.topRight, row, col - 4),
+                    { row: < 4, col: < 4 } => GetPieceInQuad(state.topLeft, row, col)
                 };
             }
             set
@@ -54,10 +60,10 @@ namespace ChessMinMax
                 var bits = ((ulong)value.Type) << 1 | (value.Black ? 1UL : 0);
                 var _ = (row, col) switch
                 {
-                    { row: > 3, col: > 3 } => SetPiece(bits, ref bottomRight, row - 4, col - 4),
-                    { row: > 3, col: < 4 } => SetPiece(bits, ref bottomLeft, row - 4, col),
-                    { row: < 4, col: > 3 } => SetPiece(bits, ref topRight, row, col - 4),
-                    { row: < 4, col: < 4 } => SetPiece(bits, ref topLeft, row, col)
+                    { row: > 3, col: > 3 } => SetPiece(bits, ref state.bottomRight, row - 4, col - 4),
+                    { row: > 3, col: < 4 } => SetPiece(bits, ref state.bottomLeft, row - 4, col),
+                    { row: < 4, col: > 3 } => SetPiece(bits, ref state.topRight, row, col - 4),
+                    { row: < 4, col: < 4 } => SetPiece(bits, ref state.topLeft, row, col)
                 };
             }
         }
@@ -89,7 +95,56 @@ namespace ChessMinMax
                 return 0;//unused return to use the lovely pattern match switch to invoke this ref method for side effects
             }
         }
+        /// <summary>
+        /// moves and returns the piece that was moved
+        /// </summary>
+        /// <param name="move"></param>
+        /// <returns></returns>
+        public Piece Move(Move move)
+        {
+            var piece = this[move.SourceRow, move.SourceCol];
+            this[move.SourceRow, move.SourceCol] = new Piece(false, PieceType.Empty);
+            this[move.TargetRow, move.TargetCol] = piece;
+            return piece;
+        }
+        // metadata int bit pack scheme
+        //   rRook has moved
+        //    |
+        // king has moved     h-a pawn (reversed order, a on right)
+        //  | |            double advanced
+        //  | |             on previous turn
+        //lRook has moved      /                 
+        //| | |  pad  ,_,_,_,_/_,_,_,    
+        //| | |   |   h g f e d c b a    same as white half
+        //v v v   v   v v v v v v v v    with lower 16 bits
+        //0 0 0 00000 0 0 0 0 0 0 0 0    0000000000000000
+        // white half                      black half
+        public bool LeftRookHasMoved(bool isBlack) => (state.metaData >> (isBlack ? 15 : 31)) == 1;
+        public void SetLeftRookMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 15 : 31);
 
+        public bool KingHasMoved(bool isBlack) => ((state.metaData >> (isBlack ? 14 : 30)) & 1) == 1;
+        public void SetKingMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 14 : 30);
+
+        public bool RightRookHasMoved(bool isBlack) => ((state.metaData >> (isBlack ? 13 : 29)) & 1) == 1;
+        public void SetRightRookMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 13 : 29);
+
+        //h g f e d c b a
+        //0 0 0 0 0 0 0 0
+        //7 6 5 4 3 2 1 0
+        public bool PawnDoubleAdvancedLastTurn(int col, bool isBlack)
+            => (state.metaData >> (col + (isBlack ? 0 : 16)) & 1) == 1;
+        public void SetPawnDoubleAdvancedLastTurn(int col, bool isBlack, bool value)
+        {
+            var shift = col + (isBlack ? 0 : 16);
+            if (value)
+            {
+                state.metaData |= (1 << shift);
+            }
+            else
+            {
+                state.metaData &= ~(1 << shift);
+            }
+        }
     }
 }
 
