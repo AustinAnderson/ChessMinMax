@@ -42,7 +42,7 @@ namespace ChessMinMax
             public  int metaData;//stores en passant and castle info, see getters and setters below
         }
         private State state;
-        public PackedBoardState Clone() => new PackedBoardState { state = state };
+        public PackedBoardState Clone() => new(){ state = this.state };
         public Piece this[int row, int col]
         {
             get
@@ -96,16 +96,60 @@ namespace ChessMinMax
             }
         }
         /// <summary>
-        /// moves and returns the piece that was moved
+        /// moves and returns the piece that was captured, or empty
         /// </summary>
         /// <param name="move"></param>
         /// <returns></returns>
         public Piece Move(Move move)
         {
+            var captured = Piece.Empty;
             var piece = this[move.SourceRow, move.SourceCol];
-            this[move.SourceRow, move.SourceCol] = new Piece(false, PieceType.Empty);
-            this[move.TargetRow, move.TargetCol] = piece;
-            return piece;
+            this.SetPawnDoubleAdvancedLastTurn(move.SourceCol, piece.Black, false);
+            
+
+            if (move.TakesEnPassant)
+            {
+                this[move.SourceRow, move.SourceCol] = Piece.Empty;
+                this[move.TargetRow, move.TargetCol] = piece;
+
+                //for en passant the piece starts on the same row as the one we're capturing,
+                //so captured is column we moved to and row we started on wether white or black
+                captured = this[move.SourceRow, move.TargetCol];
+                this[move.SourceRow, move.TargetCol] = Piece.Empty;
+            }
+            else if (move.CastlesKingSide)
+            {
+                this.SetRightRookMovedForPlayer(piece.Black);
+                this[move.SourceRow, 5] = new Piece(piece.Black,PieceType.Rook);
+                this[move.SourceRow, 6] = piece;
+                this[move.SourceRow, 7] = Piece.Empty;
+            }
+            else if (move.CastlesKingSide)
+            {
+                this.SetLeftRookMovedForPlayer(piece.Black);
+                this[move.SourceRow, 0] = Piece.Empty;
+                this[move.SourceRow, 2] = piece;
+                this[move.SourceRow, 3] = new Piece(piece.Black,PieceType.Rook);
+            }
+            else
+            {
+                captured = this[move.TargetRow, move.TargetCol];
+                if (move.DoubleAdvancesPawn)
+                {
+                    this.SetPawnDoubleAdvancedLastTurn(move.SourceCol, piece.Black, true);
+                }
+                this[move.SourceRow, move.SourceCol] = new Piece(false, PieceType.Empty);
+                if(move.PromotesToQueen)  piece = new Piece(piece.Black,PieceType.Queen);
+                if(move.PromotesToBishop) piece = new Piece(piece.Black,PieceType.Bishop);
+                if(move.PromotesToKnight) piece = new Piece(piece.Black,PieceType.Knight);
+                if(move.PromotesToRook)   piece = new Piece(piece.Black,PieceType.Rook);
+                this[move.TargetRow, move.TargetCol] = piece;
+            }
+            if(piece.Type == PieceType.King)
+            {
+                this.SetKingMovedForPlayer(piece.Black);
+            }
+            return captured;
         }
         // metadata int bit pack scheme
         //   rRook has moved
@@ -119,14 +163,14 @@ namespace ChessMinMax
         //v v v   v   v v v v v v v v    with lower 16 bits
         //0 0 0 00000 0 0 0 0 0 0 0 0    0000000000000000
         // white half                      black half
-        public bool LeftRookHasMoved(bool isBlack) => (state.metaData >> (isBlack ? 15 : 31)) == 1;
-        public void SetLeftRookMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 15 : 31);
+        public bool LeftRookHasMovedForPlayer(bool isBlack) => (state.metaData >> (isBlack ? 15 : 31)) == 1;
+        public void SetLeftRookMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 15 : 31);
 
-        public bool KingHasMoved(bool isBlack) => ((state.metaData >> (isBlack ? 14 : 30)) & 1) == 1;
-        public void SetKingMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 14 : 30);
+        public bool KingHasMovedForPlayer(bool isBlack) => ((state.metaData >> (isBlack ? 14 : 30)) & 1) == 1;
+        public void SetKingMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 14 : 30);
 
-        public bool RightRookHasMoved(bool isBlack) => ((state.metaData >> (isBlack ? 13 : 29)) & 1) == 1;
-        public void SetRightRookMoved(bool isBlack) => state.metaData |= 1 << (isBlack ? 13 : 29);
+        public bool RightRookHasMovedForPlayer(bool isBlack) => ((state.metaData >> (isBlack ? 13 : 29)) & 1) == 1;
+        public void SetRightRookMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 13 : 29);
 
         //h g f e d c b a
         //0 0 0 0 0 0 0 0

@@ -10,6 +10,7 @@ namespace ChessMinMax
 {
     public class GameLogic
     {
+        //TODO: move to move scorer
         private static readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
             { PieceType.King, 1000 },
             { PieceType.Queen, 90 },
@@ -19,6 +20,22 @@ namespace ChessMinMax
             { PieceType.Pawn, 10 },
         };
 
+        public IEnumerable<Move> GetMovesForPlayer(bool blackPlayer, PackedBoardState boardState)
+        {
+            for (int row = 0; row< 8; row++) 
+            { 
+                for(int col = 0; col < 8; col++)
+                {
+                    if (boardState[row, col].Black == blackPlayer)
+                    {
+                        foreach(var move in GetLegalMoves(row, col, boardState))
+                        {
+                            yield return move;
+                        }
+                    }
+                }
+            }
+        }
         public IEnumerable<Move> GetLegalMoves(int row,int col, PackedBoardState board)
         {
             var piece = board[row, col];
@@ -39,6 +56,7 @@ namespace ChessMinMax
                 PieceType.Pawn => GetPawnMoves(row,col, piece.Black, board),
                 _ => throw new NotImplementedException($"moves of {piece.Type}")
             };
+            //TODO:move to move scorer
             foreach(var move in moves)
             {
                 SetCheckOrMates(move, board);
@@ -226,14 +244,42 @@ namespace ChessMinMax
                     moves.Add(tentative);
                 }
             }
+            if(!board.KingHasMovedForPlayer(isBlack) && !board.LeftRookHasMovedForPlayer(isBlack))
+            {
+                if (
+                    board[kRow, 1].Type == PieceType.Empty &&
+                    board[kRow, 2].Type == PieceType.Empty &&
+                    board[kRow, 3].Type == PieceType.Empty &&
+                    !CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board) &&
+                    !CheckFinder.ChecksSquare(kRow, 2, !isBlack, board) &&
+                    !CheckFinder.ChecksSquare(kRow, 3, !isBlack, board)
+                )
+                {
+                    moves.Add(new Move { CastlesQueenSide = true, SourceRow = kRow, SourceCol = kCol });
+                }
+            }
+            if(!board.KingHasMovedForPlayer(isBlack) && !board.RightRookHasMovedForPlayer(isBlack))
+            {
+                if (
+                    board[kRow, 5].Type == PieceType.Empty &&
+                    board[kRow, 6].Type == PieceType.Empty &&
+                    !CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board) &&
+                    !CheckFinder.ChecksSquare(kRow, 5, !isBlack, board) &&
+                    !CheckFinder.ChecksSquare(kRow, 6, !isBlack, board)
+                )
+                {
+                    moves.Add(new Move { CastlesKingSide = true, SourceRow = kRow, SourceCol = kCol });
+                }
+            }
             return moves;
         }
 
-        //pass by val for board to enact move and test for check mates and then throw away the changed version
+        //TODO: move to move scorer
         private void SetCheckOrMates(Move move, PackedBoardState board) 
         {
             var boardCopy = board.Clone();
-            var piece = boardCopy.Move(move);
+            var piece = boardCopy[move.SourceRow, move.SourceCol];
+            boardCopy.Move(move);
             //find opposing king, search left right up down and diags for opposing piece,
             //stopping that direction if same color piece in the way,
             //then check the knight squares away from the king for an opposing knight.

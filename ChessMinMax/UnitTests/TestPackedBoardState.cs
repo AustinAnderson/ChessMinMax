@@ -41,5 +41,10 @@ namespace UnitTests
                 }
             }
         }
+        [TestMethod]
+        public void TestCastleStates()
+        {
+
+        }
     }
 }

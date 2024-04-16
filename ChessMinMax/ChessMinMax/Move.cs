@@ -8,21 +8,21 @@ namespace ChessMinMax
 {
     public class Move
     {
-        private const int ScoreResetMask = 0b00000000000_1_1_1_1_1_1__1_1_1__111_111_111_111;
-        private const int SourceColMask =  0b00000000000_0_0_0_0_0_0__0_0_0__000_000_000_111;
-        private const int SourceRowMask =  0b00000000000_0_0_0_0_0_0__0_0_0__000_000_111_000;
-        private const int TargetColMask =  0b00000000000_0_0_0_0_0_0__0_0_0__000_111_000_000;
-        private const int TargetRowMask =  0b00000000000_0_0_0_0_0_0__0_0_0__111_000_000_000;
-        //                                dstR dstC 
-        //                   stale  cmate   |   | srcR srcC
-        //                         \  |check|   |   |   |
-        //      score               | | |   |   |   |   |
-        //        v                 v v v   v   v   v   v
-        // 00000000000 0 0 0 0 0 0  0 0 0  000 000 000 000
-        //             | | | | | |
-        //    promotes Q N B R | \
-        //                     |  takesEnPassant
-        //                     doubleAdvancesPawn
+        private const int ScoreResetMask = 0b000000000_1_1__1_1_1_1_1_1__1_1_1__111_111_111_111;
+        private const int SourceColMask =  0b000000000_0_0__0_0_0_0_0_0__0_0_0__000_000_000_111;
+        private const int SourceRowMask =  0b000000000_0_0__0_0_0_0_0_0__0_0_0__000_000_111_000;
+        private const int TargetColMask =  0b000000000_0_0__0_0_0_0_0_0__0_0_0__000_111_000_000;
+        private const int TargetRowMask =  0b000000000_0_0__0_0_0_0_0_0__0_0_0__111_000_000_000;
+        //                                   dstR dstC 
+        //                      stale  cmate   |   | srcR srcC
+        //                            \  |check|   |   |   |
+        //   score                     | | |   |   |   |   |
+        //    v                        v v v   v   v   v   v
+        // 000000000 0 0  0 0 0 0 0 0  0 0 0  000 000 000 000
+        //           | |  | | | | | |
+        //       promotes Q N B R | \
+        //           | |          |  takesEnPassant
+        // castles   Q K          doubleAdvancesPawn
         private int state;
         public int SourceCol { 
             get => state & SourceColMask; 
@@ -85,16 +85,30 @@ namespace ChessMinMax
             get => ((state >> 20) & 1) == 1;
             set => state = (state & (~(1 << 20))) | (value ? 1 << 20 : 0);
         }
-        public int Score { 
-            get => state >> 21; 
-            set => state = (state & ScoreResetMask) | (value << 21); 
+        public bool CastlesKingSide
+        {
+            get => ((state >> 21) & 1) == 1;
+            set => state = (state & (~(1 << 21))) | (value ? 1 << 21 : 0);
         }
+        public bool CastlesQueenSide
+        {
+            get => ((state >> 22) & 1) == 1;
+            set => state = (state & (~(1 << 22))) | (value ? 1 << 22 : 0);
+        }
+        /// <summary>
+        /// 0-511
+        /// </summary>
+        public int Score { 
+            get => state >> 23; 
+            set => state = (state & ScoreResetMask) | (value << 23); 
+        }
+        public const int MAX_SCORE = (~ScoreResetMask)>>23;
 
         private static readonly Move EmptyMove = new Move();
         public static bool TryCreateMove(int fromRow,int fromCol,int toRow,int toCol, out Move move)
         {
             move = EmptyMove;
-            if (fromRow > 8 || fromCol < 0 || toRow > 8 || toCol < 0)
+            if (fromRow > 7 || fromCol < 0 || toRow > 7 || toCol < 0)
             {
                 return false;
             }
@@ -108,6 +122,6 @@ namespace ChessMinMax
             return true;
         }
 
-        public Move Clone() => new Move { state = state };
+        public Move Clone() => new() { state = this.state };
     }
 }
