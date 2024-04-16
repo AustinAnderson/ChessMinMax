@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ChessMinMax
 {
-    public class GameLogic
+    public class MoveFinder
     {
         //TODO: move to move scorer
         private static readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
