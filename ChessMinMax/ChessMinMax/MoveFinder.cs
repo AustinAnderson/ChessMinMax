@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,17 +11,7 @@ namespace ChessMinMax
 {
     public class MoveFinder
     {
-        //TODO: move to move scorer
-        private static readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
-            { PieceType.King, 1000 },
-            { PieceType.Queen, 90 },
-            { PieceType.Rook, 50 },
-            { PieceType.Bishop, 35 },
-            { PieceType.Knight, 30 },
-            { PieceType.Pawn, 10 },
-        };
-
-        public IEnumerable<Move> GetMovesForPlayer(bool blackPlayer, PackedBoardState boardState)
+        public static IEnumerable<Move> GetMovesForPlayer(bool blackPlayer, IConstPackedBoardState boardState)
         {
             for (int row = 0; row< 8; row++) 
             { 
@@ -36,10 +27,10 @@ namespace ChessMinMax
                 }
             }
         }
-        public IEnumerable<Move> GetLegalMoves(int row,int col, PackedBoardState board)
+        public static IEnumerable<Move> GetLegalMoves(int row,int col, IConstPackedBoardState board)
         {
             var piece = board[row, col];
-            var moves = piece.Type switch
+            return piece.Type switch
             {
                 PieceType.Empty => new List<Move>(),
                 PieceType.King => GetKingMoves(row, col, piece.Black, board),
@@ -56,12 +47,6 @@ namespace ChessMinMax
                 PieceType.Pawn => GetPawnMoves(row,col, piece.Black, board),
                 _ => throw new NotImplementedException($"moves of {piece.Type}")
             };
-            //TODO:move to move scorer
-            foreach(var move in moves)
-            {
-                SetCheckOrMates(move, board);
-                yield return move;//iterate list only once, logic in foreach conceptually is going here
-            }
         }
         /*
          * ___________________
@@ -76,141 +61,156 @@ namespace ChessMinMax
         ___7|_|_|_|_||_|_|_|_|
              0|1|2|3||4|5|6|7|
         */
-        private List<Move> GetPawnMoves(int pRow, int pCol, bool isBlack, PackedBoardState board)
+        public static List<Move> GetPawnMoves(int pRow, int pCol, bool isBlack, IConstPackedBoardState board)
         {
             var moves = new List<Move>();
-
-            //                                                             black vals, white vals
-            foreach(var (advanceDir, startRow, opJumpRow, endRow) in new[] {(1,1,4,7),(-1,6,3,0)})
+            var (advanceDir, startRow, opJumpRow, endRow) = isBlack switch
             {
-                
-                if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol, out Move normalAdvance)
-                    && board[normalAdvance.TargetRow,normalAdvance.TargetCol].Type == PieceType.Empty
+                false => (-1, 6, 3, 0),
+                true => (1, 1, 4, 7)
+            };
+
+
+            if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol, out Move normalAdvance)
+                && board[normalAdvance.TargetRow, normalAdvance.TargetCol].Type == PieceType.Empty
+            )
+            {
+                moves.Add(normalAdvance);
+            }
+
+            if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol - 1, out Move attackLeft))
+            {
+                var piece = board[attackLeft.TargetRow, attackLeft.TargetCol];
+                //target is an opposing piece, can move there
+                if (piece.Type != PieceType.Empty && piece.Black != isBlack)
+                {
+                    moves.Add(attackLeft);
+                }
+            }
+            if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol + 1, out Move attackRight))
+            {
+                var piece = board[attackRight.TargetRow, attackRight.TargetCol];
+                //target is an opposing piece, can move there
+                if (piece.Type != PieceType.Empty && piece.Black != isBlack)
+                {
+                    moves.Add(attackRight);
+                }
+            }
+            for (int i = moves.Count - 1; i >= 0; i--)
+            {
+                var move = moves[i];
+                //don't have to check black or white because it's impossible for a pawn to move backwards,
+                //so e.i. white pawn can never be on row 7
+                if (move.TargetRow == endRow)
+                {
+                    var knight = move.Clone();
+                    knight.PromotesToKnight = true;
+                    moves.Add(knight);
+
+                    var bishop = move.Clone();
+                    bishop.PromotesToBishop = true;
+                    moves.Add(bishop);
+
+                    var rook = move.Clone();
+                    rook.PromotesToRook = true;
+                    moves.Add(rook);
+
+                    move.PromotesToQueen = true;
+                }
+            }
+            if (
+                Move.TryCreateMove(
+                    pRow, pCol,
+                    pRow + (advanceDir * 2), pCol,
+                    out Move doubleAdvance
                 )
+                && pRow == startRow
+                && board[doubleAdvance.SourceRow, doubleAdvance.TargetCol].Type == PieceType.Empty
+            )
+            {
+                doubleAdvance.DoubleAdvancesPawn = true;
+                moves.Add(doubleAdvance);
+            }
+            //check enpassant
+            if (pRow == opJumpRow)
+            {
+                if (pCol > 0)
                 {
-                    moves.Add(normalAdvance);
-                }
-                
-                if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol - 1, out Move attackLeft))
-                {
-                    var piece = board[attackLeft.TargetRow,attackLeft.TargetCol];
-                    //target is an opposing piece, can move there
-                    if(piece.Type != PieceType.Empty && piece.Black != isBlack)
+                    var passantCheck = board[pRow, pCol - 1];
+                    if (passantCheck.Black != isBlack && passantCheck.Type == PieceType.Pawn
+                        && board.PawnDoubleAdvancedLastTurn(pCol - 1, passantCheck.Black)
+                    )
                     {
-                        moves.Add(attackLeft);
-                    }
-                }
-                if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol + 1, out Move attackRight))
-                {
-                    var piece = board[attackRight.TargetRow,attackRight.TargetCol];
-                    //target is an opposing piece, can move there
-                    if(piece.Type != PieceType.Empty && piece.Black != isBlack)
-                    {
-                        moves.Add(attackRight);
-                    }
-                }
-                foreach(var move in moves)
-                {
-                    //don't have to check black or white because it's impossible for a pawn to move backwards,
-                    //so e.i. white pawn can never be on row 7
-                    if(move.TargetRow == endRow)
-                    {
-                        var knight = move.Clone();
-                        knight.PromotesToKnight = true;
-                        moves.Add(knight);
-
-                        var bishop = move.Clone();
-                        bishop.PromotesToBishop = true;
-                        moves.Add(bishop);
-
-                        var rook = move.Clone();
-                        rook.PromotesToRook = true;
-                        moves.Add(rook);
-
-                        move.PromotesToQueen = true;
-                    }
-                }
-                if(
-                    Move.TryCreateMove(
-                        pRow, pCol,
-                        pRow + (advanceDir * 2), pCol,
-                        out Move doubleAdvance
-                    ) 
-                    && pRow == startRow 
-                    && board[doubleAdvance.SourceRow,doubleAdvance.TargetCol].Type == PieceType.Empty
-                )
-                {
-                    doubleAdvance.DoubleAdvancesPawn = true;
-                    moves.Add(doubleAdvance);
-                }
-                //check enpassant
-                if(pRow == opJumpRow)
-                {
-                    if (pCol > 0)
-                    {
-                        var passantCheck = board[pRow, pCol - 1];
-                        if (passantCheck.Black != isBlack && passantCheck.Type == PieceType.Pawn
-                            && board.PawnDoubleAdvancedLastTurn(pCol - 1, passantCheck.Black)
-                        )
+                        moves.Add(new Move
                         {
-                            moves.Add(new Move
-                            {
-                                SourceRow = pRow,
-                                SourceCol = pCol,
-                                TargetRow = pRow + advanceDir,
-                                TargetCol = pCol - 1,
-                                TakesEnPassant = true
-                            });
-                        }
+                            SourceRow = pRow,
+                            SourceCol = pCol,
+                            TargetRow = pRow + advanceDir,
+                            TargetCol = pCol - 1,
+                            TakesEnPassant = true
+                        });
                     }
-                    if (pCol < 7)
+                }
+                if (pCol < 7)
+                {
+                    var passantCheck = board[pRow, pCol + 1];
+                    if (passantCheck.Black != isBlack && passantCheck.Type == PieceType.Pawn
+                        && board.PawnDoubleAdvancedLastTurn(pCol + 1, passantCheck.Black)
+                    )
                     {
-                        var passantCheck = board[pRow, pCol + 1];
-                        if (passantCheck.Black != isBlack && passantCheck.Type == PieceType.Pawn
-                            && board.PawnDoubleAdvancedLastTurn(pCol + 1, passantCheck.Black)
-                        )
+                        moves.Add(new Move
                         {
-                            moves.Add(new Move
-                            {
-                                SourceRow = pRow,
-                                SourceCol = pCol,
-                                TargetRow = pRow + advanceDir,
-                                TargetCol = pCol + 1,
-                                TakesEnPassant = true
-                            });
-                        }
+                            SourceRow = pRow,
+                            SourceCol = pCol,
+                            TargetRow = pRow + advanceDir,
+                            TargetCol = pCol + 1,
+                            TakesEnPassant = true
+                        });
                     }
                 }
             }
             return moves;
         }
-        private List<Move> GetRookQueenBishopMoves(int nRow, int nCol, bool isBlack, 
-            PackedBoardState board, (int, int)[] directions
+        public static List<Move> GetRookQueenBishopMoves(int nRow, int nCol, bool isBlack, 
+            IConstPackedBoardState board, (int, int)[] directions
         )
         {
             List<Move> moves = new();
             foreach (var (modR, modC) in directions)
             {
-                bool directionDone = false;
-                while (!directionDone)
+                bool doneWithDirection = false;
+                int dstR = nRow + modR;
+                int dstC = nCol + modC;
+                while (!doneWithDirection)
                 {
-                    if(!Move.TryCreateMove(nRow, nCol, nRow + modR, nCol + modC, out Move tentative))
+                    if(!Move.TryCreateMove(nRow, nCol, dstR, dstC, out Move tentative))
                     {
                         break;
                     }
-                    if (board[tentative.TargetRow, tentative.TargetCol].Black == isBlack)
-                    {
-                        directionDone = true;
-                    }
-                    else
+                    var target = board[tentative.TargetRow, tentative.TargetCol];
+                    //empty , same color, res
+                    // 0    ,      1    , done with direction/break;
+                    // 0    ,      0    , add move, break;
+                    // 1    ,      -    , add move
+                    if(target.Type == PieceType.Empty)
                     {
                         moves.Add(tentative);
                     }
+                    else
+                    {
+                        if(target.Black != isBlack)
+                        {
+                            moves.Add(tentative);
+                        }
+                        doneWithDirection = true;
+                    }
+                    dstR += modR;
+                    dstC += modC;
                 }
             }
             return moves;
         }
-        private List<Move> GetKnightMoves(int nRow, int nCol, bool isBlack, PackedBoardState board)
+        public static List<Move> GetKnightMoves(int nRow, int nCol, bool isBlack, IConstPackedBoardState board)
         {
             List<Move> moves = new();
             var directions = new[] { (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2) };
@@ -223,7 +223,7 @@ namespace ChessMinMax
             }
             return moves;
         }
-        private List<Move> GetKingMoves(int kRow, int kCol,bool isBlack, PackedBoardState board)
+        public static List<Move> GetKingMoves(int kRow, int kCol,bool isBlack, IConstPackedBoardState board)
         {
             List<Move> moves = new();
             var directions = new[] { (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1) };
@@ -236,7 +236,7 @@ namespace ChessMinMax
                 {
                     continue;
                 }
-                var boardCopy = board;//make a copy on each iteration to enact the move and revert by throwing the copy away
+                var boardCopy = board.Clone();//make a copy on each iteration to enact the move and revert by throwing the copy away
                 boardCopy.Move(tentative);
                 //check if the opposing pieces create a check on the tentative king move, can't move into check
                 if(!CheckFinder.ChecksSquare(tentative.TargetRow, tentative.TargetCol, attackersBlack: !isBlack, boardCopy))
@@ -273,40 +273,6 @@ namespace ChessMinMax
             }
             return moves;
         }
-
-        //TODO: move to move scorer
-        private void SetCheckOrMates(Move move, PackedBoardState board) 
-        {
-            var boardCopy = board.Clone();
-            var piece = boardCopy[move.SourceRow, move.SourceCol];
-            boardCopy.Move(move);
-            //find opposing king, search left right up down and diags for opposing piece,
-            //stopping that direction if same color piece in the way,
-            //then check the knight squares away from the king for an opposing knight.
-
-            int rOppKing = 0;
-            int cOppKing = 0;
-            bool done = false;
-            for (; rOppKing < 8 && !done; rOppKing++)
-            {
-                for(; cOppKing < 8 && !done; cOppKing++)
-                {
-                    if (boardCopy[rOppKing, cOppKing] == new Piece(!piece.Black, PieceType.King))
-                    {
-                        done = true;
-                    }
-                }
-            }
-            if(CheckFinder.ChecksSquare(rOppKing,cOppKing,piece.Black, boardCopy))
-            {
-                move.Checks = true;
-                move.CheckMates = 
-                    //king can't take the checking piece or move out of check, i.e. no legal moves
-                    GetKingMoves(rOppKing, cOppKing, !piece.Black, boardCopy).Count == 0 &&
-                    //nothing can take the square putting us in check
-                    CheckFinder.ChecksSquare(move.TargetRow, move.TargetCol, piece.Black, boardCopy);
-            } 
-
-        }
+        
     }
 }

@@ -8,8 +8,39 @@ using System.Threading.Tasks;
 
 namespace ChessMinMax
 {
-    public class PackedBoardState
+    public interface IConstPackedBoardState
     {
+        Piece this[int row,int col] { get; }
+        PackedBoardState Clone();
+        /// <summary>
+        /// returns the captured piece, which might be empty if it was a normal move
+        /// </summary>
+        /// <param name="move"></param>
+        /// <returns></returns>
+        Piece Move(IConstMove move);
+        bool LeftRookHasMovedForPlayer(bool isBlack);
+        bool KingHasMovedForPlayer(bool isBlack);
+        bool RightRookHasMovedForPlayer(bool isBlack);
+        bool PawnDoubleAdvancedLastTurn(int col, bool isBlack);
+    }
+    public class PackedBoardState: IConstPackedBoardState
+    {
+        public static PackedBoardState Pack(Piece?[][] EightByEightBoard)
+        {
+            if (EightByEightBoard.Length != 8 || EightByEightBoard.Any(c => c.Length != 8))
+            {
+                throw new ArgumentOutOfRangeException($"{nameof(EightByEightBoard)} must be 8 arrays of length 8");
+            }
+            var packed = new PackedBoardState();
+            for(int r = 0; r < 8; r++)
+            {
+                for(int c = 0; c < 8; c++)
+                {
+                    packed[r, c] = EightByEightBoard[r][c] ?? Piece.Empty;
+                }
+            }
+            return packed;
+        }
         private struct State
         {
             //typeEnum value
@@ -97,10 +128,11 @@ namespace ChessMinMax
         }
         /// <summary>
         /// moves and returns the piece that was captured, or empty
+        /// move remains unmodified
         /// </summary>
         /// <param name="move"></param>
         /// <returns></returns>
-        public Piece Move(Move move)
+        public Piece Move(IConstMove move)
         {
             var captured = Piece.Empty;
             var piece = this[move.SourceRow, move.SourceCol];
@@ -188,6 +220,40 @@ namespace ChessMinMax
             {
                 state.metaData &= ~(1 << shift);
             }
+        }
+        public string ToString()
+        {
+            var typeLetterMap = new Dictionary<PieceType, char>
+            {
+                {PieceType.Empty,  '_' },
+                {PieceType.King,   'K' },
+                {PieceType.Queen,  'Q' },
+                {PieceType.Bishop, 'B' },
+                {PieceType.Knight, 'N' },
+                {PieceType.Rook,   'R' },
+                {PieceType.Pawn,   'p' },
+            };
+            string disp = "\r\n";
+            for(int r = 0; r<8; r++)
+            {
+                for(int c = 0; c<8; c++)
+                {
+                    disp += "|";
+                    var piece = this[r, c];
+                    disp += typeLetterMap[piece.Type];
+                    if (piece.Type == PieceType.Empty)
+                    {
+                        disp += "_";
+                    }
+                    else
+                    {
+                        disp += piece.Black ? "b" : "w";
+                    }
+
+                }
+                disp += "\r\n";
+            }
+            return disp;
         }
     }
 }

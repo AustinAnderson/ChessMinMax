@@ -6,7 +6,27 @@ using System.Threading.Tasks;
 
 namespace ChessMinMax
 {
-    public class Move
+    public interface IConstMove
+    {
+        public int SourceCol { get; }
+        public int SourceRow  { get; }
+        public int TargetCol  { get; }
+        public int TargetRow  { get; }
+        public bool Checks { get; }
+        public bool CheckMates { get; }
+        public bool StaleMates { get; }
+        public bool TakesEnPassant { get; }
+        public bool DoubleAdvancesPawn { get; }
+        public bool PromotesToKnight { get; }
+        public bool PromotesToBishop { get; }
+        public bool PromotesToRook { get; }
+        public bool PromotesToQueen { get; }
+        public bool CastlesKingSide { get; }
+        public bool CastlesQueenSide { get; }
+        public int Score { get; }
+
+    }
+    public class Move:IConstMove
     {
         private const int ScoreResetMask = 0b000000000_1_1__1_1_1_1_1_1__1_1_1__111_111_111_111;
         private const int SourceColMask =  0b000000000_0_0__0_0_0_0_0_0__0_0_0__000_000_000_111;
@@ -30,15 +50,15 @@ namespace ChessMinMax
         }
         public int SourceRow { 
             get => (state & SourceRowMask) >> 3; 
-            set => state = (state & ~SourceColMask) | (value << 3); 
+            set => state = (state & ~SourceRowMask) | (value << 3); 
         }
         public int TargetCol { 
-            get => (state & TargetRowMask) >> 6; 
+            get => (state & TargetColMask) >> 6; 
             set => state = (state & ~TargetColMask) | (value << 6); 
         }
         public int TargetRow { 
-            get => (state & TargetColMask) >> 9; 
-            set => state = (state & ~TargetColMask) | (value << 9); 
+            get => (state & TargetRowMask) >> 9; 
+            set => state = (state & ~TargetRowMask) | (value << 9); 
         }
         public bool Checks
         {
@@ -108,7 +128,7 @@ namespace ChessMinMax
         public static bool TryCreateMove(int fromRow,int fromCol,int toRow,int toCol, out Move move)
         {
             move = EmptyMove;
-            if (fromRow > 7 || fromCol < 0 || toRow > 7 || toCol < 0)
+            if (toRow < 0 || toRow > 7 || toCol < 0 || toCol > 7)
             {
                 return false;
             }
@@ -123,5 +143,37 @@ namespace ChessMinMax
         }
 
         public Move Clone() => new() { state = this.state };
+        public override string ToString() 
+        {
+            var str = $"({SourceRow},{SourceCol}) => ({TargetRow},{TargetCol}) ";
+            if (PromotesToBishop) str += "p => B";
+            if (PromotesToKnight) str += "p => N";
+            if (PromotesToQueen) str += "p => Q";
+            if (PromotesToRook) str += "p => R";
+            return str;
+        }
+        public string GetDebugBitString() => GetDebugBitString(this.state);
+        public static string GetDebugBitString(int state)
+        {
+            var assembled = "";
+            var bits = Convert.ToString(state, 2).PadLeft(32, '0');
+            var template = "000000000 0 0  0 0 0 0 0 0  0 0 0  000 000 000 000";
+            int iBits = 0;
+            int iTemplate = 0;
+            while (iBits<bits.Length && iTemplate < template.Length)
+            {
+                if (template[iTemplate] == '0')
+                {
+                    assembled += bits[iBits];
+                    iBits++;
+                }
+                else
+                {
+                    assembled += ' ';
+                }
+                iTemplate++;
+            }
+            return assembled;
+        }
     }
 }

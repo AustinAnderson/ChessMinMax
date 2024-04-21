@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,27 +9,25 @@ namespace ChessMinMax
 {
     public static class CheckFinder
     {
-        private static readonly int[] PlusDeltaR = [1, -1,  0, 0];
-        private static readonly int[] PlusDeltaC = [0,  0, -1, 1];
-
-        private static readonly int[] CrossDeltaR = [ 1, -1, 1, -1];
-        private static readonly int[] CrossDeltaC = [-1, -1, 1,  1];
-        public static bool ChecksSquare(int rAttacked, int cAttacked, bool attackersBlack, PackedBoardState board) 
+        private static readonly (int,int)[] PlusDelta =  [(1, 0), (-1, 0), (0,-1), ( 0, 1)];
+        private static readonly (int,int)[] CrossDelta = [(1,-1), (-1,-1), (1, 1), (-1, 1)];
+        public static bool ChecksSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
         {
 
             //check rook and queen and king (all spaces in a plus pattern out from attacked square)
             for (int i = 0; i < 4; i++)
             {
-                int modr = PlusDeltaR[i];
-                int modc = PlusDeltaC[i];
+                var (modr,modc) = PlusDelta[i];
                 int curR = rAttacked;
                 int curC = cAttacked;
-                bool oneAway = true;
-                while(curC > 8 && curC <= 0 && curR > 8 && curR <= 0)
+                int loopCount = 0;
+                while(curC < 8 && curC >= 0 && curR < 8 && curR >= 0)
                 {
                     curR += modr;
                     curC += modc;
-                    var curr = board[curC, curR];
+                    loopCount++;
+                    bool oneAway = loopCount == 1;
+                    var curr = board[curR, curC];
                     //if empty don't care, 
                     if (curr.Type == PieceType.Empty) continue;
                     //if it's a piece that can't attack this direction,
@@ -50,22 +49,22 @@ namespace ChessMinMax
                         if (curr.Black == attackersBlack) return true;
                         break;
                     }
-                    oneAway = false;
                 }
             }
             //check Bishop and queen and king (all spaces in a X pattern out from attacked square)
             for (int i = 0; i < 4; i++)
             {
-                int modr = CrossDeltaR[i];
-                int modc = CrossDeltaC[i];
+                var (modr,modc) = CrossDelta[i];
                 int curR = rAttacked;
                 int curC = cAttacked;
-                bool oneAway = true;
-                while(curC > 8 && curC <= 0 && curR > 8 && curR <= 0)
+                int loopCount = 0;
+                while(curC < 8 && curC >= 0 && curR < 8 && curR >= 0)
                 {
                     curR += modr;
                     curC += modc;
-                    var curr = board[curC, curR];
+                    loopCount++;
+                    bool oneAway = loopCount == 1;
+                    var curr = board[curR, curC];
                     //if empty don't care, 
                     if (curr.Type == PieceType.Empty) continue;
                     //if it's a piece that can't attack this direction,
@@ -93,12 +92,11 @@ namespace ChessMinMax
                         //if the attacking king could take us we're in "check"
                         return true;
                     }
-                    if(curr.Type == PieceType.Queen || curr.Type == PieceType.Rook)
+                    if(curr.Type == PieceType.Queen || curr.Type == PieceType.Bishop)
                     {
                         if (curr.Black == attackersBlack) return true;
                         break;
                     }
-                    oneAway = false;
                 }
             }
 
