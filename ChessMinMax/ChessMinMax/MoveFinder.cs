@@ -239,7 +239,7 @@ namespace ChessMinMax
                 var boardCopy = board.Clone();//make a copy on each iteration to enact the move and revert by throwing the copy away
                 boardCopy.Move(tentative);
                 //check if the opposing pieces create a check on the tentative king move, can't move into check
-                if(!CheckFinder.ChecksSquare(tentative.TargetRow, tentative.TargetCol, attackersBlack: !isBlack, boardCopy))
+                if(CheckFinder.ChecksSquare(tentative.TargetRow, tentative.TargetCol, attackersBlack: !isBlack, boardCopy).Count==0)
                 {
                     moves.Add(tentative);
                 }
@@ -250,9 +250,9 @@ namespace ChessMinMax
                     board[kRow, 1].Type == PieceType.Empty &&
                     board[kRow, 2].Type == PieceType.Empty &&
                     board[kRow, 3].Type == PieceType.Empty &&
-                    !CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board) &&
-                    !CheckFinder.ChecksSquare(kRow, 2, !isBlack, board) &&
-                    !CheckFinder.ChecksSquare(kRow, 3, !isBlack, board)
+                    CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board).Count==0 &&
+                    CheckFinder.ChecksSquare(kRow, 2, !isBlack, board).Count==0 &&
+                    CheckFinder.ChecksSquare(kRow, 3, !isBlack, board).Count==0
                 )
                 {
                     moves.Add(new Move { CastlesQueenSide = true, SourceRow = kRow, SourceCol = kCol });
@@ -263,9 +263,9 @@ namespace ChessMinMax
                 if (
                     board[kRow, 5].Type == PieceType.Empty &&
                     board[kRow, 6].Type == PieceType.Empty &&
-                    !CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board) &&
-                    !CheckFinder.ChecksSquare(kRow, 5, !isBlack, board) &&
-                    !CheckFinder.ChecksSquare(kRow, 6, !isBlack, board)
+                    CheckFinder.ChecksSquare(kRow, kCol, !isBlack, board).Count==0 &&
+                    CheckFinder.ChecksSquare(kRow, 5, !isBlack, board).Count==0 &&
+                    CheckFinder.ChecksSquare(kRow, 6, !isBlack, board).Count==0
                 )
                 {
                     moves.Add(new Move { CastlesKingSide = true, SourceRow = kRow, SourceCol = kCol });

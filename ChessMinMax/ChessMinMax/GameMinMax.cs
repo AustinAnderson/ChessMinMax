@@ -36,23 +36,27 @@ namespace ChessMinMax
         }
         public void SetScore(bool lookForMin)
         {
-            int minMax = int.MinValue;
-            if (lookForMin) minMax = int.MaxValue;
+            int max = int.MinValue;
+            if(EachMove.Count < 1)
+            {
+                score = MoveToGetHere.Score;
+                return;
+            }
             foreach(var node in EachMove)
             {
                 node.SetScore(!lookForMin);
-                if(lookForMin && node.score < minMax)
+                if(node.score > max)
                 {
-                    minMax = node.score;
-                }
-                else if (!lookForMin && node.score > minMax)
-                {
-                    minMax = node.score;
+                    max = node.score;
                 }
             }
-            if (minMax != int.MinValue && minMax != int.MaxValue)
+            if (max != int.MinValue)
             {
-                score = minMax;
+                if (lookForMin)
+                {
+                    max *= -1;
+                }
+                score += max;
             }
         }
     }

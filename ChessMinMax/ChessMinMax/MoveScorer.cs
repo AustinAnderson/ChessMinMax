@@ -73,16 +73,23 @@ namespace ChessMinMax
                     }
                 }
             }
-            if(CheckFinder.ChecksSquare(rOppKing,cOppKing,piece.Black, boardCopy))
+            //could probably do with just count of checks, and use move for coords if only one
+            var checkers = CheckFinder.ChecksSquare(rOppKing, cOppKing, piece.Black, boardCopy);
+            if(checkers.Count>0)
             {
                 move.Checks = true;
-                move.CheckMates = 
+                move.CheckMates =
                     //king can't take the checking piece or move out of check, i.e. no legal moves
-                    MoveFinder.GetKingMoves(rOppKing, cOppKing, !piece.Black, boardCopy).Count == 0 &&
-                    //nothing can take the square putting us in check
-                    CheckFinder.ChecksSquare(move.TargetRow, move.TargetCol, piece.Black, boardCopy);
+                    MoveFinder.GetKingMoves(rOppKing, cOppKing, !piece.Black, boardCopy).Count == 0
+                    //and can't get out of check by taking piece next turn
+                    && (
+                        //so more than one checker or
+                        checkers.Count > 1 ||
+                        //no pieces can immediately take the one putting us in check
+                        CheckFinder.ChecksSquare(checkers[0].Item1, checkers[0].Item2, piece.Black, boardCopy).Count == 0
+                    );
+                    
             } 
-
         }
     }
 }

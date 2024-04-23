@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Coords = System.ValueTuple<int, int>;
 
 namespace ChessMinMax
 {
@@ -11,8 +6,9 @@ namespace ChessMinMax
     {
         private static readonly (int,int)[] PlusDelta =  [(1, 0), (-1, 0), (0,-1), ( 0, 1)];
         private static readonly (int,int)[] CrossDelta = [(1,-1), (-1,-1), (1, 1), (-1, 1)];
-        public static bool ChecksSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
+        public static List<Coords> ChecksSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
         {
+            var coords = new List<Coords>();
 
             //check rook and queen and king (all spaces in a plus pattern out from attacked square)
             for (int i = 0; i < 4; i++)
@@ -42,11 +38,15 @@ namespace ChessMinMax
                     if (curr.Type == PieceType.King && curr.Black == attackersBlack && oneAway)
                     {
                         //if the attacking king could take us we're in "check"
-                        return true;
+                        coords.Add((curR, curC));
+                        break;
                     }
-                    if(curr.Type == PieceType.Queen || curr.Type == PieceType.Rook)
+                    else if(curr.Type == PieceType.Queen || curr.Type == PieceType.Rook)
                     {
-                        if (curr.Black == attackersBlack) return true;
+                        if (curr.Black == attackersBlack)
+                        {
+                            coords.Add((curR, curC));
+                        }
                         break;
                     }
                 }
@@ -83,35 +83,48 @@ namespace ChessMinMax
                         //(down for black, up for white) we're in check
                         if((attackersBlack && curR > rAttacked) || (!attackersBlack && curR < rAttacked))
                         {
-                            return true;
+                            coords.Add((curR,curC));
+                            break;
                         }
                     }
                     //needed because we check for check on potential moves to find legal ones
                     if (curr.Type == PieceType.King && curr.Black == attackersBlack && oneAway)
                     {
                         //if the attacking king could take us we're in "check"
-                        return true;
+                        coords.Add((curR,curC));
+                        break;
                     }
                     if(curr.Type == PieceType.Queen || curr.Type == PieceType.Bishop)
                     {
-                        if (curr.Black == attackersBlack) return true;
+                        if (curr.Black == attackersBlack)
+                        {
+                            coords.Add((curR,curC));
+                        }
                         break;
                     }
                 }
             }
 
             //do knight check
-            var checkKnight = new Piece(attackersBlack, PieceType.Knight);
-            return
-            rAttacked + 1 <  8 && cAttacked + 2 <  8 && board[rAttacked + 1, cAttacked + 2] == checkKnight ||
-            rAttacked + 2 <  8 && cAttacked + 1 <  8 && board[rAttacked + 2, cAttacked + 1] == checkKnight ||
-            rAttacked + 2 <  8 && cAttacked - 1 >= 0 && board[rAttacked + 2, cAttacked - 1] == checkKnight ||
-            rAttacked + 1 <  8 && cAttacked - 2 >= 0 && board[rAttacked + 1, cAttacked - 2] == checkKnight ||
-            rAttacked - 1 >= 0 && cAttacked - 2 >= 0 && board[rAttacked - 1, cAttacked - 2] == checkKnight ||
-            rAttacked - 2 >= 0 && cAttacked - 1 >= 0 && board[rAttacked - 2, cAttacked - 1] == checkKnight ||
-            rAttacked - 1 >= 0 && cAttacked + 2 <  8 && board[rAttacked - 1, cAttacked + 2] == checkKnight ||
-            rAttacked - 2 >= 0 && cAttacked + 1 <  8 && board[rAttacked - 2, cAttacked + 1] == checkKnight;
-
+            CheckKnight(rAttacked + 1, cAttacked + 2, attackersBlack, board, coords);
+            CheckKnight(rAttacked + 2, cAttacked + 1, attackersBlack, board, coords);
+            CheckKnight(rAttacked + 2, cAttacked - 1, attackersBlack, board, coords);
+            CheckKnight(rAttacked + 1, cAttacked - 2, attackersBlack, board, coords);
+            CheckKnight(rAttacked - 1, cAttacked - 2, attackersBlack, board, coords);
+            CheckKnight(rAttacked - 2, cAttacked - 1, attackersBlack, board, coords);
+            CheckKnight(rAttacked - 1, cAttacked + 2, attackersBlack, board, coords);
+            CheckKnight(rAttacked - 2, cAttacked + 1, attackersBlack, board, coords);
+            return coords;
+        }
+        private static void CheckKnight(int rAttackingKnight, int cAttackingKnight, bool isBlack, IConstPackedBoardState state, List<Coords> coords)
+        {
+            if (rAttackingKnight < 8 && cAttackingKnight < 8 && rAttackingKnight >= 0 && cAttackingKnight >= 0 &&
+                state[rAttackingKnight, cAttackingKnight].Type==PieceType.Knight &&
+                state[rAttackingKnight, cAttackingKnight].Black==isBlack
+            )
+            {
+                coords.Add((rAttackingKnight, cAttackingKnight));
+            }
         }
     }
 }
