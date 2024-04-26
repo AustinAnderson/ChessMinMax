@@ -81,7 +81,7 @@ namespace ChessMinMax
                         if (curr.Black != attackersBlack) break;
                         //otherwise pawn is attacking color, since we're only checking diags, if pawn is from the advancing direction of the attack color,
                         //(down for black, up for white) we're in check
-                        if((attackersBlack && curR > rAttacked) || (!attackersBlack && curR < rAttacked))
+                        if((attackersBlack && curR < rAttacked) || (!attackersBlack && curR > rAttacked))
                         {
                             coords.Add((curR,curC));
                             break;

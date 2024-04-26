@@ -78,12 +78,12 @@ namespace ChessMinMax
             }
             //could probably do with just count of checks, and use move for coords if only one
             //opposing king in check by anything from the color of the pieceThatMoved
-            var checkers = AttackLogic.ThreatensSquare(rOppKing, cOppKing, pieceThatMoved.Black, boardCopy);
+            var checkers = AttackLogic.ThreatensSquare(rOppKing, cOppKing, attackersBlack: pieceThatMoved.Black, boardCopy);
             if(checkers.Count>0)
             {
                 move.Checks = true;
                 //king can't take the checking piece or move out of check, i.e. no legal moves
-                if(MoveFinder.GetKingMoves(rOppKing, cOppKing, !pieceThatMoved.Black, boardCopy).Count == 0)
+                if(MoveFinder.GetKingMoves(rOppKing, cOppKing, isBlack: !pieceThatMoved.Black, boardCopy).Count == 0)
                 {
                     //test if we can't get out of check by taking piece next turn
                     //so more than one checker or
@@ -94,8 +94,9 @@ namespace ChessMinMax
                     else
                     {
                         //no pieces can immediately take the one putting us in check
-                        var attackers = AttackLogic.ThreatensSquare(checkers[0].Item1, checkers[0].Item2, !pieceThatMoved.Black, boardCopy);
-                        move.CheckMates = attackers.Count > 1 || attackers[0] == (rOppKing, cOppKing);
+                        var attackers = AttackLogic.ThreatensSquare(checkers[0].Item1, checkers[0].Item2, attackersBlack: !pieceThatMoved.Black, boardCopy);
+                        //nothing can take the piece, or the piece threatening it is the king (already checked that that's invalid in the outer if)
+                        move.CheckMates = attackers.Count==0 || (attackers.Count == 1 && attackers[0] == (rOppKing, cOppKing));
                     }
                 }
             } 

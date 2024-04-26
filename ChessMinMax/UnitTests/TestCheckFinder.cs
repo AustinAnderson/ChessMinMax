@@ -92,7 +92,7 @@ namespace UnitTests
         [TestMethod]
         public void DiagUpLeft()
         {
-            Assert.AreEqual((1,0),
+            Assert.AreEqual((3,2),
                 AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [Qb,__,__,__,pb,pb,__,__],//1
