@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,13 +21,13 @@ namespace ChessMinMax
         public static IEnumerable<Move> ScoreMoves(IEnumerable<Move> moves, IConstPackedBoardState boardState)
         {
             bool unknownPlayerColor=true;
-            bool playerIsBlack = false;
+            bool playerIsBlack;
             foreach (var move in moves)
             {
                 if (unknownPlayerColor)
                 {
                     playerIsBlack = boardState[move.SourceRow, move.SourceCol].Black;
-                    unknownPlayerColor = true;
+                    unknownPlayerColor = false;
                 }
                 SetCheckOrMates(move, boardState);
                 if (move.CheckMates)
@@ -54,7 +55,7 @@ namespace ChessMinMax
         private static void SetCheckOrMates(Move move, IConstPackedBoardState board) 
         {
             var boardCopy = board.Clone();
-            var piece = boardCopy[move.SourceRow, move.SourceCol];
+            var pieceThatMoved = boardCopy[move.SourceRow, move.SourceCol];
             boardCopy.Move(move);
             //find opposing king, search left right up down and diags for opposing piece,
             //stopping that direction if same color piece in the way,
@@ -63,32 +64,40 @@ namespace ChessMinMax
             int rOppKing = 0;
             int cOppKing = 0;
             bool done = false;
-            for (; rOppKing < 8 && !done; rOppKing++)
+            for (; rOppKing < 8; rOppKing++)
             {
-                for(; cOppKing < 8 && !done; cOppKing++)
+                for(; cOppKing < 8; cOppKing++)
                 {
-                    if (boardCopy[rOppKing, cOppKing] == new Piece(!piece.Black, PieceType.King))
+                    if (boardCopy[rOppKing, cOppKing] == new Piece(!pieceThatMoved.Black, PieceType.King))
                     {
                         done = true;
+                        break;
                     }
                 }
+                if (done) break;
             }
             //could probably do with just count of checks, and use move for coords if only one
-            var checkers = CheckFinder.ChecksSquare(rOppKing, cOppKing, piece.Black, boardCopy);
+            //opposing king in check by anything from the color of the pieceThatMoved
+            var checkers = CheckFinder.ChecksSquare(rOppKing, cOppKing, pieceThatMoved.Black, boardCopy);
             if(checkers.Count>0)
             {
                 move.Checks = true;
-                move.CheckMates =
-                    //king can't take the checking piece or move out of check, i.e. no legal moves
-                    MoveFinder.GetKingMoves(rOppKing, cOppKing, !piece.Black, boardCopy).Count == 0
-                    //and can't get out of check by taking piece next turn
-                    && (
-                        //so more than one checker or
-                        checkers.Count > 1 ||
+                //king can't take the checking piece or move out of check, i.e. no legal moves
+                if(MoveFinder.GetKingMoves(rOppKing, cOppKing, !pieceThatMoved.Black, boardCopy).Count == 0)
+                {
+                    //test if we can't get out of check by taking piece next turn
+                    //so more than one checker or
+                    if (checkers.Count > 1) 
+                    {
+                        move.CheckMates = true;
+                    }
+                    else
+                    {
                         //no pieces can immediately take the one putting us in check
-                        CheckFinder.ChecksSquare(checkers[0].Item1, checkers[0].Item2, piece.Black, boardCopy).Count == 0
-                    );
-                    
+                        var attackers = CheckFinder.ChecksSquare(checkers[0].Item1, checkers[0].Item2, !pieceThatMoved.Black, boardCopy);
+                        move.CheckMates = attackers.Count > 1 || attackers[0] == (rOppKing, cOppKing);
+                    }
+                }
             } 
         }
     }

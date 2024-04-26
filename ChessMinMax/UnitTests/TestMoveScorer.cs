@@ -25,34 +25,114 @@ namespace UnitTests
             Qw = new(false, PieceType.Queen),  Kw = new(false, PieceType.King);
 
         [TestMethod]
+        public void TestFindCheckMateQueen()
+        {
+            var state = PackedBoardState.Pack([
+                [__,__,__,Kb,__,Bb,__,Rb],//0
+                [__,__,__,pb,__,pb,__,__],//1
+                [__,__,Qw,__,pw,Nb,pb,__],//2
+                [__,__,__,__,__,__,__,pb],//3
+                [__,__,Rw,__,__,Bw,__,__],//4
+                [__,__,__,__,pw,Nw,__,__],//5
+                [__,__,__,__,__,pw,pw,pw],//6
+                [__,__,Kw,__,__,Bw,__,Rw],//7
+              //  0  1  2  3  4  5  6  7
+            ]);
+            var res = MoveScorer.ScoreMoves(new[] {new Move
+            {
+                SourceRow = 2, SourceCol = 2,
+                TargetRow = 1, TargetCol = 3
+            } }, state).Single();
+            Assert.AreEqual((true, (2, 2), (1, 3)), (res.CheckMates, (res.SourceRow,res.SourceCol), (res.TargetRow,res.TargetCol)));
+
+        }
+        [TestMethod]
         public void TestFindCheckMate()
         {
             var state = PackedBoardState.Pack([
-                [__,Rb,__,Kb,__,Bb,__,Rb],//0
-                [__,__,__,__,pb,pb,__,__],//1
-                [pb,__,Qw,__,__,Nb,pb,__],//2
-                [__,pb,__,pb,__,Bb,__,pb],//3
-                [__,__,__,pw,__,Bw,__,__],//4
-                [__,__,__,__,pw,Nw,__,__],//5
-                [pw,pw,pw,__,__,pw,pw,pw],//6
-                [__,__,Kw,Rw,__,Bw,__,Rw],//7
+                [Kb,__,__,__,__,__,__,__],//0
+                [__,Rw,Qw,__,__,__,__,__],//1
+                [__,__,__,__,__,__,__,__],//2
+                [__,__,__,__,__,__,__,__],//3
+                [__,__,__,__,__,__,__,__],//4
+                [__,__,__,__,__,__,__,__],//5
+                [__,__,__,__,__,__,__,__],//6
+                [__,__,Kw,__,__,__,__,__],//7
               //  0  1  2  3  4  5  6  7
             ]);
+            var res = MoveScorer.ScoreMoves(new[] {new Move
+            {
+                SourceRow = 1, SourceCol = 1,
+                TargetRow = 0, TargetCol = 1
+            } }, state).Single();
+            Assert.AreEqual((true, (1, 1), (0, 1)), (res.CheckMates, (res.SourceRow,res.SourceCol), (res.TargetRow,res.TargetCol)));
         }
         [TestMethod]
-        public void TestFindCheckMateDoubleCheck()
+        public void TestFindNotCheckMateKingCaptureOut()
         {
             var state = PackedBoardState.Pack([
-                [__,Rb,__,Kb,__,Bb,__,Rb],//0
-                [__,__,__,__,pb,pb,__,__],//1
-                [pb,__,Qw,__,__,Nb,pb,__],//2
-                [__,pb,__,pb,__,Bb,__,pb],//3
-                [__,__,__,pw,__,Bw,__,__],//4
-                [__,__,__,__,pw,Nw,__,__],//5
-                [pw,pw,pw,__,__,pw,pw,pw],//6
-                [__,__,Kw,Rw,__,Bw,__,Rw],//7
+                [Kb,__,__,__,__,__,__,__],//0
+                [__,Rw,Rw,__,__,__,__,__],//1
+                [__,__,__,__,__,__,__,__],//2
+                [__,__,__,__,__,__,__,__],//3
+                [__,__,__,__,__,Nb,__,__],//4
+                [__,__,__,__,__,__,__,__],//5
+                [__,__,__,__,__,__,__,__],//6
+                [__,__,Kw,__,__,__,__,__],//7
               //  0  1  2  3  4  5  6  7
             ]);
+            var res = MoveScorer.ScoreMoves(new[] {new Move
+            {
+                SourceRow = 1, SourceCol = 1,
+                TargetRow = 0, TargetCol = 1
+            } }, state).Single();
+            Assert.AreEqual((false, (1, 1), (0, 1)), (res.CheckMates, (res.SourceRow,res.SourceCol), (res.TargetRow,res.TargetCol)));
+
+        }
+        [TestMethod]
+        public void TestFindNotCheckMateOtherCaptureOut()
+        {
+            var state = PackedBoardState.Pack([
+                [Kb,__,__,__,__,Rb,__,__],//0
+                [__,Rw,Qw,__,__,__,__,__],//1
+                [__,__,__,__,__,__,__,__],//2
+                [__,__,__,__,__,__,__,__],//3
+                [__,__,__,__,__,__,__,__],//4
+                [__,__,__,__,__,__,__,__],//5
+                [__,__,__,__,__,__,__,__],//6
+                [__,__,Kw,__,__,__,__,__],//7
+              //  0  1  2  3  4  5  6  7
+            ]);
+            var res = MoveScorer.ScoreMoves(new[] {new Move
+            {
+                SourceRow = 1, SourceCol = 1,
+                TargetRow = 0, TargetCol = 1
+            } }, state).Single();
+            Assert.AreEqual((false, (1, 1), (0, 1)), (res.CheckMates, (res.SourceRow,res.SourceCol), (res.TargetRow,res.TargetCol)));
+
+        }
+        [TestMethod]
+        public void TestFindCheckMateWithCapture()
+        {
+            //moving the rook up is check mate, and taking it with opposing rook
+            //is still check mate because of bishop
+            var state = PackedBoardState.Pack([
+                [Kb,__,__,__,__,Rb,__,__],//0
+                [__,Rw,Qw,__,__,__,__,__],//1
+                [__,__,Bw,__,__,__,__,__],//2
+                [__,__,__,__,__,__,__,__],//3
+                [__,__,__,__,__,__,__,__],//4
+                [__,__,__,__,__,__,__,__],//5
+                [__,__,__,__,__,__,__,__],//6
+                [__,__,Kw,__,__,__,__,__],//7
+              //  0  1  2  3  4  5  6  7
+            ]);
+            var res = MoveScorer.ScoreMoves(new[] {new Move
+            {
+                SourceRow = 1, SourceCol = 1,
+                TargetRow = 0, TargetCol = 1
+            } }, state).Single();
+            Assert.AreEqual((true, (1, 1), (0, 1)), (res.CheckMates, (res.SourceRow,res.SourceCol), (res.TargetRow,res.TargetCol)));
         }
 
     }
