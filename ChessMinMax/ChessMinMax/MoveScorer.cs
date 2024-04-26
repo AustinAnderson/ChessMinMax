@@ -78,7 +78,7 @@ namespace ChessMinMax
             }
             //could probably do with just count of checks, and use move for coords if only one
             //opposing king in check by anything from the color of the pieceThatMoved
-            var checkers = CheckFinder.ChecksSquare(rOppKing, cOppKing, pieceThatMoved.Black, boardCopy);
+            var checkers = AttackLogic.ThreatensSquare(rOppKing, cOppKing, pieceThatMoved.Black, boardCopy);
             if(checkers.Count>0)
             {
                 move.Checks = true;
@@ -94,7 +94,7 @@ namespace ChessMinMax
                     else
                     {
                         //no pieces can immediately take the one putting us in check
-                        var attackers = CheckFinder.ChecksSquare(checkers[0].Item1, checkers[0].Item2, !pieceThatMoved.Black, boardCopy);
+                        var attackers = AttackLogic.ThreatensSquare(checkers[0].Item1, checkers[0].Item2, !pieceThatMoved.Black, boardCopy);
                         move.CheckMates = attackers.Count > 1 || attackers[0] == (rOppKing, cOppKing);
                     }
                 }

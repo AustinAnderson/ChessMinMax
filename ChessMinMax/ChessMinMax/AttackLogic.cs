@@ -2,11 +2,11 @@
 
 namespace ChessMinMax
 {
-    public static class CheckFinder
+    public static class AttackLogic
     {
         private static readonly (int,int)[] PlusDelta =  [(1, 0), (-1, 0), (0,-1), ( 0, 1)];
         private static readonly (int,int)[] CrossDelta = [(1,-1), (-1,-1), (1, 1), (-1, 1)];
-        public static List<Coords> ChecksSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
+        public static List<Coords> ThreatensSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
         {
             var coords = new List<Coords>();
 

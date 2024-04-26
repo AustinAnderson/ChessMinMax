@@ -30,7 +30,7 @@ namespace UnitTests
         public void DiagUpRight()
         {
             Assert.AreEqual((2,5),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,Rb,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,Bb,pb,__],//2
@@ -46,7 +46,7 @@ namespace UnitTests
         public void DiagUpRightBlocked()
         {
             Assert.AreEqual(0,
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,Rb,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,__,pb,__,__],//1
                 [__,__,__,__,__,Bb,pb,__],//2
@@ -62,7 +62,7 @@ namespace UnitTests
         public void Up()
         {
             Assert.AreEqual((1,3),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,Rb,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -77,7 +77,7 @@ namespace UnitTests
         [TestMethod]
         public void UpBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,Rb,pb,pb,__,__],//1
                 [__,__,__,pw,__,__,pb,__],//2
@@ -93,7 +93,7 @@ namespace UnitTests
         public void DiagUpLeft()
         {
             Assert.AreEqual((1,0),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [Qb,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -108,7 +108,7 @@ namespace UnitTests
         [TestMethod]
         public void DiagUpLeftBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [Qb,__,__,__,pb,pb,__,__],//1
                 [__,Nw,__,__,__,__,pb,__],//2
@@ -124,7 +124,7 @@ namespace UnitTests
         public void Left()
         {
             Assert.AreEqual((4,0),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -139,7 +139,7 @@ namespace UnitTests
         [TestMethod]
         public void LeftBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -155,7 +155,7 @@ namespace UnitTests
         public void DiagDownLeft()
         {
             Assert.AreEqual((6,1),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -170,7 +170,7 @@ namespace UnitTests
         public void DiagDownLeftBlocked()
         {
             Assert.AreEqual(0,
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -186,7 +186,7 @@ namespace UnitTests
         public void Down()
         {
             Assert.AreEqual((7,3),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -201,7 +201,7 @@ namespace UnitTests
         [TestMethod]
         public void DownBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -218,7 +218,7 @@ namespace UnitTests
         public void DiagDownRight()
         {
             Assert.AreEqual((7,6),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -233,7 +233,7 @@ namespace UnitTests
         [TestMethod]
         public void DiagDownRightBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -249,7 +249,7 @@ namespace UnitTests
         public void Right()
         {
             Assert.AreEqual((4,4),
-                CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+                AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -264,7 +264,7 @@ namespace UnitTests
         [TestMethod]
         public void RightBlocked()
         {
-            Assert.AreEqual(0,CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            Assert.AreEqual(0,AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [__,__,__,__,pb,pb,__,__],//1
                 [__,__,__,__,__,__,pb,__],//2
@@ -279,7 +279,7 @@ namespace UnitTests
         [TestMethod]
         public void Multiple()
         {
-            var actual = CheckFinder.ChecksSquare(4, 3, true, PackedBoardState.Pack([
+            var actual = AttackLogic.ThreatensSquare(4, 3, true, PackedBoardState.Pack([
                 [__,__,__,Kb,__,Bb,__,Rb],//0
                 [Qb,__,__,__,pb,pb,__,__],//1
                 [__,__,__,Rb,__,__,pb,__],//2
