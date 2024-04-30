@@ -18,9 +18,9 @@ namespace ChessMinMax
         /// <param name="move"></param>
         /// <returns></returns>
         Piece Move(IConstMove move);
-        bool LeftRookHasMovedForPlayer(bool isBlack);
-        bool KingHasMovedForPlayer(bool isBlack);
-        bool RightRookHasMovedForPlayer(bool isBlack);
+        bool QueenCastleUnavailableForPlayer(bool isBlack);
+        bool KingCastleUnavailableForPlayer(bool isBlack);
+        (int r, int c) GetKingCoords(bool isBlack);
         bool PawnDoubleAdvancedLastTurn(int col, bool isBlack);
     }
     public class PackedBoardState: IConstPackedBoardState
@@ -70,7 +70,7 @@ namespace ChessMinMax
             public long topRight;
             public long bottomLeft;
             public long bottomRight;
-            public  int metaData;//stores en passant and castle info, see getters and setters below
+            public uint metaData;//stores en passant and castle info, see getters and setters below
         }
         private State state;
         public PackedBoardState Clone() => new(){ state = this.state };
@@ -88,6 +88,10 @@ namespace ChessMinMax
             }
             set
             {
+                if (value.Type == PieceType.King)
+                {
+                    SetKingCoords(value.Black, (uint)row, (uint)col);
+                }
                 var bits = ((ulong)value.Type) << 1 | (value.Black ? 1UL : 0);
                 var _ = (row, col) switch
                 {
@@ -151,14 +155,14 @@ namespace ChessMinMax
             }
             else if (move.CastlesKingSide)
             {
-                this.SetRightRookMovedForPlayer(piece.Black);
+                this.SetKingCastleUnavailableForPlayer(piece.Black);
                 this[move.SourceRow, 5] = new Piece(piece.Black,PieceType.Rook);
                 this[move.SourceRow, 6] = piece;
                 this[move.SourceRow, 7] = Piece.Empty;
             }
-            else if (move.CastlesKingSide)
+            else if (move.CastlesQueenSide)
             {
-                this.SetLeftRookMovedForPlayer(piece.Black);
+                this.SetQueenCastleUnavailableForPlayer(piece.Black);
                 this[move.SourceRow, 0] = Piece.Empty;
                 this[move.SourceRow, 2] = piece;
                 this[move.SourceRow, 3] = new Piece(piece.Black,PieceType.Rook);
@@ -179,30 +183,60 @@ namespace ChessMinMax
             }
             if(piece.Type == PieceType.King)
             {
-                this.SetKingMovedForPlayer(piece.Black);
+                this.SetQueenCastleUnavailableForPlayer(piece.Black);
+                this.SetKingCastleUnavailableForPlayer(piece.Black);
+                this.SetKingCoords(piece.Black,(uint)move.TargetRow,(uint)move.TargetCol);
+            }
+            if(piece.Type == PieceType.Rook)
+            {
+                if(move.SourceCol == 0)
+                {
+                    this.SetQueenCastleUnavailableForPlayer(piece.Black);
+                }
+                if(move.SourceCol == 7)
+                {
+                    this.SetKingCastleUnavailableForPlayer(piece.Black);
+                }
             }
             return captured;
         }
+
         // metadata int bit pack scheme
-        //   rRook has moved
-        //    |
-        // king has moved     h-a pawn (reversed order, a on right)
-        //  | |            double advanced
-        //  | |             on previous turn
-        //lRook has moved      /                 
-        //| | |  pad  ,_,_,_,_/_,_,_,    
-        //| | |   |   h g f e d c b a    same as white half
-        //v v v   v   v v v v v v v v    with lower 16 bits
-        //0 0 0 00000 0 0 0 0 0 0 0 0    0000000000000000
-        // white half                      black half
-        public bool LeftRookHasMovedForPlayer(bool isBlack) => (state.metaData >> (isBlack ? 15 : 31)) == 1;
-        public void SetLeftRookMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 15 : 31);
+        //  
+        //can king castle
+        //  |         h-a pawn (reversed order, a on right)
+        //  |                 double advanced
+        //  |                on previous turn
+        //can queen castle       /                 
+        //| | king pos  ,_,_,_,_/_,_,_,    
+        //| |  row col  h g f e d c b a    same as white half
+        //v v   v   v   v v v v v v v v    with lower 16 bits
+        //0 0  000 000  0 0 0 0 0 0 0 0    0000000000000000
+        public bool QueenCastleUnavailableForPlayer(bool isBlack) => (state.metaData >> (isBlack ? 15 : 31)) == 1;
+        private void SetQueenCastleUnavailableForPlayer(bool isBlack) => state.metaData |= 1U << (isBlack ? 15 : 31);
 
-        public bool KingHasMovedForPlayer(bool isBlack) => ((state.metaData >> (isBlack ? 14 : 30)) & 1) == 1;
-        public void SetKingMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 14 : 30);
+        public bool KingCastleUnavailableForPlayer(bool isBlack) => ((state.metaData >> (isBlack ? 14 : 30)) & 1) == 1;
+        private void SetKingCastleUnavailableForPlayer(bool isBlack) => state.metaData |= 1U << (isBlack ? 14 : 30);
 
-        public bool RightRookHasMovedForPlayer(bool isBlack) => ((state.metaData >> (isBlack ? 13 : 29)) & 1) == 1;
-        public void SetRightRookMovedForPlayer(bool isBlack) => state.metaData |= 1 << (isBlack ? 13 : 29);
+        public (int r, int c) GetKingCoords(bool isBlack)
+            =>(
+                (int)(state.metaData >> (isBlack ? 11 : 27)) & 0b0111,
+                (int)(state.metaData >> (isBlack ?  8 : 24)) & 0b0111
+            );
+        private const uint BlackRowColReset = 0b1111_1111_1111_1111__1100_0000_1111_1111;
+        private const uint WhiteRowColReset = 0b1100_0000_1111_1111__1111_1111_1111_1111;
+        private void SetKingCoords(bool isBlack, uint row, uint col)
+        {
+            if (isBlack)
+            {
+                state.metaData = (state.metaData & BlackRowColReset) | (row <<11) | (col<<8);
+            }
+            else
+            {
+                state.metaData = (state.metaData & WhiteRowColReset) | (row <<27) | (col<<24);
+            }
+        }
+
 
         //h g f e d c b a
         //0 0 0 0 0 0 0 0
@@ -214,11 +248,11 @@ namespace ChessMinMax
             var shift = col + (isBlack ? 0 : 16);
             if (value)
             {
-                state.metaData |= (1 << shift);
+                state.metaData |= (1U << shift);
             }
             else
             {
-                state.metaData &= ~(1 << shift);
+                state.metaData &= ~(1U << shift);
             }
         }
         public string ToString()
@@ -251,7 +285,12 @@ namespace ChessMinMax
                     }
 
                 }
-                disp += "\r\n";
+                disp += $" {r}\r\n";
+            }
+            disp += " ";
+            for(int c = 0; c < 8; c++)
+            {
+                disp += $" {c} ";
             }
             return disp;
         }

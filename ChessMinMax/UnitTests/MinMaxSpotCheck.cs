@@ -46,7 +46,7 @@ namespace UnitTests
             Assert.IsNotNull(move);
             Assert.AreEqual(((2, 2), (1,2)), ((move.SourceRow, move.SourceCol), (move.TargetRow, move.TargetCol))); 
         }
-        //[TestMethod]
+        [TestMethod]
         public void TestWithDistractions()
         {
             var state = PackedBoardState.Pack([
@@ -62,8 +62,7 @@ namespace UnitTests
             ]);
             var move = GameMinMax.RunAlgo(state, false, 2);
             Assert.IsNotNull(move);
-            Assert.AreEqual((2, 2), (move.SourceRow, move.SourceCol), "source");
-            Assert.AreEqual((1, 2), (move.SourceRow, move.SourceCol), "target");
+            Assert.AreEqual(((2, 2), (1,2)), ((move.SourceRow, move.SourceCol), (move.TargetRow, move.TargetCol))); 
         }
     }
 }

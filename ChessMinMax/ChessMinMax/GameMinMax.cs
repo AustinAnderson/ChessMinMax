@@ -14,11 +14,17 @@ namespace ChessMinMax
         public Move MoveToGetHere;
         public int score;
         public override string ToString()=> $"toHere: {MoveToGetHere} {MoveToGetHere.Score}=>{score}, {EachMove.Count} children";
-        public void FillChildren(int depthCounter)
+        public void FillChildren(int depthCounter, HashSet<(int r,int c)> checkers)
         {
             if (depthCounter < 1) { return; }
-            foreach(var move in MoveScorer.ScoreMoves(MoveFinder.GetMovesForPlayer(blacksTurn, Board), Board))
+
+            var nextCheck=new HashSet<(int r,int c)>();
+            foreach(var move in MoveScorer.ScoreMoves(MoveFinder.GetMovesForPlayer(blacksTurn, Board, checkers), Board))
             {
+                if (move.Checks) 
+                {
+                    nextCheck.Add((move.TargetRow, move.TargetCol));
+                }
                 var board = Board.Clone();
                 board.Move(move);
                 EachMove.Add(new TreeNode
@@ -31,7 +37,7 @@ namespace ChessMinMax
             //TODO: tweak iteration order for performance
             foreach(var node in EachMove)
             {
-                node.FillChildren(blacksTurn? depthCounter: depthCounter-1);
+                node.FillChildren(blacksTurn ? depthCounter : depthCounter - 1,nextCheck);
             }
         }
         public void SetScore(bool lookForMin)
@@ -70,7 +76,7 @@ namespace ChessMinMax
                 Board = boardState,
                 MoveToGetHere = new Move()
             };
-            root.FillChildren(maxDepth);
+            root.FillChildren(maxDepth,new());
             if (root.EachMove.Count == 0)
             {
                 return null;

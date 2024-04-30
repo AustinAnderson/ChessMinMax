@@ -11,26 +11,38 @@ namespace ChessMinMax
 {
     public class MoveFinder
     {
-        public static IEnumerable<Move> GetMovesForPlayer(bool blackPlayer, IConstPackedBoardState boardState)
+        public static IEnumerable<Move> GetMovesForPlayer(bool blackPlayer, IConstPackedBoardState boardState, HashSet<(int r, int c)> checkers)
         {
-            for (int row = 0; row< 8; row++) 
-            { 
-                for(int col = 0; col < 8; col++)
+            var pinned = AttackLogic.GetPinnedToKing(!blackPlayer, boardState);
+            for (int row = 0; row < 8; row++)
+            {
+                for (int col = 0; col < 8; col++)
                 {
                     if (boardState[row, col].Black == blackPlayer)
                     {
-                        foreach(var move in GetLegalMoves(row, col, boardState))
+                        foreach (var move in GetLegalMoves(row, col, boardState, pinned))
                         {
-                            yield return move;
+                            if (checkers.Count > 0)
+                            {
+                                //don't need to check if king is black/white because can't move opponent king
+                                if (checkers.Contains((move.TargetRow, move.TargetCol)) || boardState[move.SourceRow, move.SourceCol].Type==PieceType.King)
+                                {
+                                    yield return move;
+                                }
+                            }
+                            else
+                            {
+                                yield return move;
+                            }
                         }
                     }
                 }
             }
         }
-        public static IEnumerable<Move> GetLegalMoves(int row,int col, IConstPackedBoardState board)
+        public static IEnumerable<Move> GetLegalMoves(int row,int col, IConstPackedBoardState board, Dictionary<(int r,int c),(int r,int c)> pinnedPiecesToAttackers)
         {
             var piece = board[row, col];
-            return piece.Type switch
+            var list = piece.Type switch
             {
                 PieceType.Empty => new List<Move>(),
                 PieceType.King => GetKingMoves(row, col, piece.Black, board),
@@ -47,6 +59,15 @@ namespace ChessMinMax
                 PieceType.Pawn => GetPawnMoves(row,col, piece.Black, board),
                 _ => throw new NotImplementedException($"moves of {piece.Type}")
             };
+            foreach(var move in list)
+            {
+                if (!pinnedPiecesToAttackers.TryGetValue((move.SourceRow, move.SourceCol),out var attacker)
+                    ||attacker == (move.TargetRow, move.TargetCol)
+                )
+                {
+                    yield return move;
+                }
+            }
         }
         /*
          * ___________________
@@ -61,7 +82,7 @@ namespace ChessMinMax
         ___7|_|_|_|_||_|_|_|_|
              0|1|2|3||4|5|6|7|
         */
-        public static List<Move> GetPawnMoves(int pRow, int pCol, bool isBlack, IConstPackedBoardState board)
+        private static List<Move> GetPawnMoves(int pRow, int pCol, bool isBlack, IConstPackedBoardState board)
         {
             var moves = new List<Move>();
             var (advanceDir, startRow, opJumpRow, endRow) = isBlack switch
@@ -171,7 +192,7 @@ namespace ChessMinMax
             }
             return moves;
         }
-        public static List<Move> GetRookQueenBishopMoves(int nRow, int nCol, bool isBlack, 
+        private static List<Move> GetRookQueenBishopMoves(int nRow, int nCol, bool isBlack, 
             IConstPackedBoardState board, (int, int)[] directions
         )
         {
@@ -210,7 +231,7 @@ namespace ChessMinMax
             }
             return moves;
         }
-        public static List<Move> GetKnightMoves(int nRow, int nCol, bool isBlack, IConstPackedBoardState board)
+        private static List<Move> GetKnightMoves(int nRow, int nCol, bool isBlack, IConstPackedBoardState board)
         {
             List<Move> moves = new();
             var directions = new[] { (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2) };
@@ -244,7 +265,7 @@ namespace ChessMinMax
                     moves.Add(tentative);
                 }
             }
-            if(!board.KingHasMovedForPlayer(isBlack) && !board.LeftRookHasMovedForPlayer(isBlack))
+            if(!board.QueenCastleUnavailableForPlayer(isBlack))
             {
                 if (
                     board[kRow, 1].Type == PieceType.Empty &&
@@ -258,7 +279,7 @@ namespace ChessMinMax
                     moves.Add(new Move { CastlesQueenSide = true, SourceRow = kRow, SourceCol = kCol });
                 }
             }
-            if(!board.KingHasMovedForPlayer(isBlack) && !board.RightRookHasMovedForPlayer(isBlack))
+            if(!board.KingCastleUnavailableForPlayer(isBlack))
             {
                 if (
                     board[kRow, 5].Type == PieceType.Empty &&

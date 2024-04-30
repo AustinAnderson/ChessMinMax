@@ -1,14 +1,12 @@
-﻿using Coords = System.ValueTuple<int, int>;
-
-namespace ChessMinMax
+﻿namespace ChessMinMax
 {
     public static class AttackLogic
     {
         private static readonly (int,int)[] PlusDelta =  [(1, 0), (-1, 0), (0,-1), ( 0, 1)];
         private static readonly (int,int)[] CrossDelta = [(1,-1), (-1,-1), (1, 1), (-1, 1)];
-        public static List<Coords> ThreatensSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
+        public static List<(int r, int c)> ThreatensSquare(int rAttacked, int cAttacked, bool attackersBlack, IConstPackedBoardState board) 
         {
-            var coords = new List<Coords>();
+            var coords = new List<(int r,int c)>();
 
             //check rook and queen and king (all spaces in a plus pattern out from attacked square)
             for (int i = 0; i < 4; i++)
@@ -116,7 +114,7 @@ namespace ChessMinMax
             CheckKnight(rAttacked - 2, cAttacked + 1, attackersBlack, board, coords);
             return coords;
         }
-        private static void CheckKnight(int rAttackingKnight, int cAttackingKnight, bool isBlack, IConstPackedBoardState state, List<Coords> coords)
+        private static void CheckKnight(int rAttackingKnight, int cAttackingKnight, bool isBlack, IConstPackedBoardState state, List<(int r,int c)> coords)
         {
             if (rAttackingKnight < 8 && cAttackingKnight < 8 && rAttackingKnight >= 0 && cAttackingKnight >= 0 &&
                 state[rAttackingKnight, cAttackingKnight].Type==PieceType.Knight &&
@@ -125,6 +123,56 @@ namespace ChessMinMax
             {
                 coords.Add((rAttackingKnight, cAttackingKnight));
             }
+        }
+        public static Dictionary<(int rPinned,int cPinned),(int rAttacker,int cAttacker)> GetPinnedToKing(bool kingIsBlack, IConstPackedBoardState board)
+        {
+            var (rAttacked, cAttacked) = board.GetKingCoords(kingIsBlack);
+            var coords = new Dictionary<(int rPinned, int cPinned), (int rAttacker, int cAttacker)>();
+            foreach (var (limitedPiece, direction) in new[] { 
+                (PieceType.Rook, PlusDelta), (PieceType.Bishop, CrossDelta) 
+            })
+            {
+                //check rook/bishop and queen (all spaces in a plus/cross pattern out from king's square)
+                for (int i = 0; i < 4; i++)
+                {
+                    var (modr, modc) = direction[i];
+                    int curR = rAttacked;
+                    int curC = cAttacked;
+                    int potentialR = -1;
+                    int potentialC = -1;
+                    while (curC < 8 && curC >= 0 && curR < 8 && curR >= 0)
+                    {
+                        curR += modr;
+                        curC += modc;
+                        var curr = board[curR, curC];
+                        //if empty don't care, if we're in check from a piece, it's not pinning
+                        if (curr.Type == PieceType.Empty) continue;
+                        //first piece we run into is same color
+                        if (potentialR == -1)
+                        {
+                            if (curr.Black == kingIsBlack)
+                            {
+                                potentialR = curR;
+                                potentialC = curC;
+                            }
+                            else//can't be a pin if not ours
+                            {
+                                break;
+                            }
+                        }
+                        //we already ran into our piece, so either a pin and done with dir or non threatening piece still done with dir
+                        else{
+
+                            if (curr.Black != kingIsBlack && (curr.Type == limitedPiece || curr.Type == PieceType.Queen))
+                            {
+                                coords.Add((potentialR, potentialC), (curR, curC));
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            return coords;
         }
     }
 }

@@ -94,7 +94,7 @@ namespace ChessMinMax
                     else
                     {
                         //no pieces can immediately take the one putting us in check
-                        var attackers = AttackLogic.ThreatensSquare(checkers[0].Item1, checkers[0].Item2, attackersBlack: !pieceThatMoved.Black, boardCopy);
+                        var attackers = AttackLogic.ThreatensSquare(checkers[0].r, checkers[0].c, attackersBlack: !pieceThatMoved.Black, boardCopy);
                         //nothing can take the piece, or the piece threatening it is the king (already checked that that's invalid in the outer if)
                         move.CheckMates = attackers.Count==0 || (attackers.Count == 1 && attackers[0] == (rOppKing, cOppKing));
                     }
