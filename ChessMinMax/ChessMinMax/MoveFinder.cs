@@ -92,6 +92,7 @@ namespace ChessMinMax
             };
 
 
+
             if (Move.TryCreateMove(pRow, pCol, pRow + advanceDir, pCol, out Move normalAdvance)
                 && board[normalAdvance.TargetRow, normalAdvance.TargetCol].Type == PieceType.Empty
             )
@@ -146,7 +147,7 @@ namespace ChessMinMax
                     out Move doubleAdvance
                 )
                 && pRow == startRow
-                && board[doubleAdvance.SourceRow, doubleAdvance.TargetCol].Type == PieceType.Empty
+                && board[doubleAdvance.TargetRow, doubleAdvance.TargetCol].Type == PieceType.Empty
             )
             {
                 doubleAdvance.DoubleAdvancesPawn = true;

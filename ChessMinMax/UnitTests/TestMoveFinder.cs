@@ -104,6 +104,49 @@ namespace UnitTests
             AssertUtils.AssertSameMoveList(expected, moves);
         }
         [TestMethod]
+        public void TestWhitePawnDouble()
+        {
+            var state = PackedBoardState.Pack([
+                [__,Rb,__,Kb,__,Bb,__,Rb],//0
+                [__,__,pw,__,pb,pb,__,__],//1
+                [pb,__,Qw,__,__,Nb,pb,__],//2
+                [__,pb,__,pb,__,Bb,__,pb],//3
+                [__,__,__,__,__,Bw,__,__],//4
+                [__,__,__,__,pw,Nw,__,__],//5
+                [pw,pw,__,__,__,pw,pw,pw],//6
+                [__,__,Kw,Rw,__,Bw,__,Rw],//7
+              //  0  1  2  3  4  5  6  7
+            ]);
+            var moves = TestGetLegalMoves(6, 1, state);
+            Move[] expected = [
+                new Move {SourceRow = 6, SourceCol = 1, TargetRow = 5, TargetCol = 1 },
+                new Move {SourceRow = 6, SourceCol = 1, TargetRow = 4, TargetCol = 1, DoubleAdvancesPawn = true }
+            ];
+            AssertUtils.AssertSameMoveList(expected, moves);
+        }
+        [TestMethod]
+        public void TestBlackPawnDouble()
+        {
+            var state = PackedBoardState.Pack([
+                [__,Rb,__,Kb,__,Bb,__,Rb],//0
+                [__,__,pw,__,pb,pb,__,__],//1
+                [pb,__,Qw,__,__,Nb,pb,__],//2
+                [__,pb,__,pb,__,Bb,__,pb],//3
+                [__,__,__,__,__,Bw,__,__],//4
+                [__,__,__,__,pw,Nw,__,__],//5
+                [pw,pw,__,__,__,pw,pw,pw],//6
+                [__,__,Kw,Rw,__,Bw,__,Rw],//7
+              //  0  1  2  3  4  5  6  7
+            ]);
+            var moves = TestGetLegalMoves(1, 4, state);
+            Move[] expected = [
+                new Move {SourceRow = 1, SourceCol = 4, TargetRow = 2, TargetCol = 4 },
+                new Move {SourceRow = 1, SourceCol = 4, TargetRow = 3, TargetCol = 4, DoubleAdvancesPawn = true }
+            ];
+            AssertUtils.AssertSameMoveList(expected, moves);
+        }
+
+        [TestMethod]
         public void TestBlockedPawn()
         {
             var state = PackedBoardState.Pack([

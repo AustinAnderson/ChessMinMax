@@ -41,6 +41,10 @@ namespace ChessMinMax
             }
             return packed;
         }
+        public string DebugPrintMetadata() => PrintDisplay.GetDebugBitString(
+            state.metaData,
+            "0 0  000 000  0 0 0 0 0 0 0 0   0 0  000 000  0 0 0 0 0 0 0 0"
+        );
         private struct State
         {
             //typeEnum value
@@ -255,7 +259,68 @@ namespace ChessMinMax
                 state.metaData &= ~(1U << shift);
             }
         }
-        public string ToString()
+        public string Serialize()
+        {
+            var trueEmpty = new Piece(true, PieceType.Empty);
+            var falseEmpty = new Piece(false, PieceType.Empty);
+            //always at least 32 empty squares because start with that many,
+            //empty doesn't use the color bit, so distribute metadata int into that
+            int currentShift = 31;
+            var copy = Clone();
+            for(int r=0; r < 8; r++)
+            {
+                for(int c=0; c < 8; c++)
+                {
+                    if (copy[r,c].Type == PieceType.Empty && currentShift >= 0)
+                    {
+                        var newEmpty = falseEmpty;
+                        if(((copy.state.metaData >> currentShift) & 1) == 1)
+                        {
+                            newEmpty = trueEmpty;
+                        }
+                        copy[r,c] = newEmpty;
+                        currentShift--;
+                    }
+                }
+            }
+            return Convert.ToBase64String(new[] {
+                copy.state.topLeft,
+                copy.state.topRight,
+                copy.state.bottomLeft,
+                copy.state.bottomRight
+            }.SelectMany(BitConverter.GetBytes).ToArray())
+            .TrimEnd('=')//always 1 pad equals at end
+            .Replace('+', '_')
+            .Replace('/', '-');
+        }
+        public static PackedBoardState Deserialize(string serialized)
+        {
+            var board = new PackedBoardState();
+            var bytes = Convert.FromBase64String(serialized.Replace('-', '/').Replace('_', '+') + '=')
+                               .Chunk(sizeof(long)).ToArray();
+            board.state.topLeft = BitConverter.ToInt64(bytes[0], 0);
+            board.state.topRight = BitConverter.ToInt64(bytes[1], 0);
+            board.state.bottomLeft = BitConverter.ToInt64(bytes[2], 0);
+            board.state.bottomRight = BitConverter.ToInt64(bytes[3], 0);
+            int shiftIndex = 31;
+            for(int r = 0; r < 8; r++)
+            {
+                for(int c = 0; c < 8; c++)
+                {
+                    if (board[r,c].Type == PieceType.Empty && shiftIndex < 32)
+                    {
+                        if (board[r, c].Black)
+                        {
+                            board.state.metaData |= (1U << shiftIndex);
+                            board[r, c] = Piece.Empty;
+                        }
+                        shiftIndex--;
+                    }
+                }
+            }
+            return board;
+        }
+        public override string ToString()
         {
             var typeLetterMap = new Dictionary<PieceType, char>
             {

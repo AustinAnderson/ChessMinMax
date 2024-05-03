@@ -152,28 +152,10 @@ namespace ChessMinMax
             if (PromotesToRook) str += "p => R";
             return str;
         }
-        public string GetDebugBitString() => GetDebugBitString(this.state);
-        public static string GetDebugBitString(int state)
-        {
-            var assembled = "";
-            var bits = Convert.ToString(state, 2).PadLeft(32, '0');
-            var template = "000000000 0 0  0 0 0 0 0 0  0 0 0  000 000 000 000";
-            int iBits = 0;
-            int iTemplate = 0;
-            while (iBits<bits.Length && iTemplate < template.Length)
-            {
-                if (template[iTemplate] == '0')
-                {
-                    assembled += bits[iBits];
-                    iBits++;
-                }
-                else
-                {
-                    assembled += ' ';
-                }
-                iTemplate++;
-            }
-            return assembled;
-        }
+        public string GetDebugBitString() => PrintDisplay.GetDebugBitString(
+            this.state, 
+            "000000000 0 0  0 0 0 0 0 0  0 0 0  000 000 000 000"
+        );
+        
     }
 }
