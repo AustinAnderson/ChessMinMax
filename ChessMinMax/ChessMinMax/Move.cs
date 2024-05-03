@@ -152,7 +152,7 @@ namespace ChessMinMax
             if (PromotesToRook) str += "p => R";
             return str;
         }
-        public string GetDebugBitString() => PrintDisplay.GetDebugBitString(
+        public string GetDebugBitString() => Debug.GetDebugBitString(
             this.state, 
             "000000000 0 0  0 0 0 0 0 0  0 0 0  000 000 000 000"
         );

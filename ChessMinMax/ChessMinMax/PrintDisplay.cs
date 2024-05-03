@@ -8,29 +8,7 @@ namespace ChessMinMax
 {
     public abstract class PrintDisplay
     {
-        public static string GetDebugBitString(int state, string template) =>
-            GetDebugBitString((uint)state, template);
-        public static string GetDebugBitString(uint state, string template)
-        {
-            var assembled = "";
-            var bits = Convert.ToString(state, 2).PadLeft(32, '0');
-            int iBits = 0;
-            int iTemplate = 0;
-            while (iBits<bits.Length && iTemplate < template.Length)
-            {
-                if (template[iTemplate] == '0')
-                {
-                    assembled += bits[iBits];
-                    iBits++;
-                }
-                else
-                {
-                    assembled += ' ';
-                }
-                iTemplate++;
-            }
-            return assembled;
-        }
+       
         public string Get(Piece p, bool blackSquare) => PieceMap[(int)p.Type - 1][PackPieceIndex(p.Black, blackSquare)];
         public string GetBlank(bool blackSquare)
         {

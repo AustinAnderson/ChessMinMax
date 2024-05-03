@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 var displayStrat = new ConsoleDisplay();
 var validInputFormat = new Regex(@"[a-h]\d,[a-h]\d[QNBR]?");
 var board = new Board();
+var beforeComputerMoved = board;
 bool done=false;
 while (!done)
 {
@@ -27,6 +28,10 @@ while (!done)
             done = true;
             validInput = true;
         }
+        else if ((input??"not_s").StartsWith('s'))
+        {
+            Debug.ScaffoldTestCase(input!.TrimStart('s'), beforeComputerMoved.GetPacked());
+        }
         else if(input == null || !validInputFormat.IsMatch(input))
         {
             DisplayError("Invalid format, must be <sourceCol><sourceRow>,<destCol><destRow>, e.g. a4,b5");
@@ -44,6 +49,7 @@ while (!done)
             Console.WriteLine(board.GetDisplayString(displayStrat));
             Console.WriteLine(board.Serialize());
             await Task.Delay(750);
+            beforeComputerMoved = board.Clone();
             board.PlayComputerMove();
         }
         else

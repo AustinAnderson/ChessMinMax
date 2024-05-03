@@ -41,7 +41,7 @@ namespace ChessMinMax
             }
             return packed;
         }
-        public string DebugPrintMetadata() => PrintDisplay.GetDebugBitString(
+        public string DebugPrintMetadata() => Debug.GetDebugBitString(
             state.metaData,
             "0 0  000 000  0 0 0 0 0 0 0 0   0 0  000 000  0 0 0 0 0 0 0 0"
         );

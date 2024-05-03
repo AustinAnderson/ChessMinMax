@@ -76,7 +76,8 @@ namespace ChessMinMax
                 Board = boardState,
                 MoveToGetHere = new Move()
             };
-            root.FillChildren(maxDepth,new());
+            var (rKing, cKing) = boardState.GetKingCoords(blacksTurn);
+            root.FillChildren(maxDepth,new HashSet<(int,int)>(AttackLogic.ThreatensSquare(rKing,cKing,!blacksTurn,boardState)));
             if (root.EachMove.Count == 0)
             {
                 return null;

@@ -108,5 +108,10 @@ namespace ChessMinMax
         {
             return board.Serialize();
         }
+        public Board Clone()
+        {
+            return new Board { isBlackPlayer = this.isBlackPlayer, board = this.board.Clone() };
+        }
+        public PackedBoardState GetPacked() => board;
     }
 }
