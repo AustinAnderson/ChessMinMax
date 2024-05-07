@@ -50,7 +50,12 @@ while (!done)
             Console.WriteLine(board.Serialize());
             await Task.Delay(750);
             beforeComputerMoved = board.Clone();
-            board.PlayComputerMove();
+            var moved = board.PlayComputerMove();
+            if(moved == null)
+            {
+                Console.WriteLine("Computer couldn't find a move...");
+                await Task.Delay(750);
+            }
         }
         else
         {

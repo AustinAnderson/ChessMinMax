@@ -22,22 +22,62 @@ namespace ChessMinMax
                     {
                         foreach (var move in GetLegalMoves(row, col, boardState, pinned))
                         {
-                            if (checkers.Count > 0)
+                            if (checkers.Count == 0) 
                             {
-                                //don't need to check if king is black/white because can't move opponent king
-                                if (checkers.Contains((move.TargetRow, move.TargetCol)) || boardState[move.SourceRow, move.SourceCol].Type==PieceType.King)
+                                yield return move;
+                            }
+                            if(checkers.Count > 1 && boardState[move.SourceRow, move.SourceCol].Type == PieceType.King)
+                            {
+                                yield return move;
+                            }
+                            if (checkers.Count == 1)
+                            {
+                                var checkCoords = checkers.First();
+                                if ((move.TargetRow, move.TargetCol) == checkCoords || 
+                                    BlocksCheck(move, checkCoords, boardState)
+                                )
                                 {
                                     yield return move;
                                 }
-                            }
-                            else
-                            {
-                                yield return move;
                             }
                         }
                     }
                 }
             }
+        }
+        //does the move put us somewhere that blocks the checking piece?
+        private static bool BlocksCheck(Move move, (int r,int c) coords, IConstPackedBoardState board)
+        {
+            var checker = board[coords.r, coords.c];
+            var kingCoords = board.GetKingCoords(!checker.Black);
+            if (checker.Type == PieceType.Knight || checker.Type == PieceType.Pawn)
+            {
+                return false;
+            }
+            var diffR = coords.r - kingCoords.r;
+            var diffC = coords.c - kingCoords.c;
+            if(diffR == 0 && coords.r == move.TargetRow)//rook/queen
+            {
+                return Math.Abs(diffC) > Math.Abs(kingCoords.c - move.TargetCol);
+            }
+            else if (diffC == 0 && coords.c == move.TargetCol)//rook/queen
+            {
+                return Math.Abs(diffR) > Math.Abs(kingCoords.r - move.TargetRow);
+            }
+            else//bishop/queen. exact diag
+            {
+                var normalizedMoveR = move.TargetRow - kingCoords.r;
+                var normalizedMoveC = move.TargetCol - kingCoords.c;
+
+                //move to be in terms of king as origin, then diag is equal magnitude of row and col
+                //on same diag if rows and cols share a sign with checker
+                //then just check if our piece is closer to the king
+                return Math.Abs(normalizedMoveR) == Math.Abs(normalizedMoveC) &&
+                        int.Sign(normalizedMoveR) == int.Sign(diffR) &&
+                        int.Sign(normalizedMoveC) == int.Sign(diffC) &&
+                        Math.Abs(normalizedMoveR) < Math.Abs(diffR);
+            }
+
         }
         public static IEnumerable<Move> GetLegalMoves(int row,int col, IConstPackedBoardState board, Dictionary<(int r,int c),(int r,int c)> pinnedPiecesToAttackers)
         {
@@ -238,9 +278,13 @@ namespace ChessMinMax
             var directions = new[] { (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2) };
             foreach (var (modR, modC) in directions)
             {
-                if (Move.TryCreateMove(nRow, nCol, nRow + modR, nCol + modC, out Move tentative) && board[tentative.TargetRow, tentative.TargetCol].Black != isBlack)
+                if (Move.TryCreateMove(nRow, nCol, nRow + modR, nCol + modC, out Move tentative))
                 {
-                    moves.Add(tentative);
+                    var target = board[tentative.TargetRow, tentative.TargetCol];
+                    if(target.Type == PieceType.Empty || target.Black != isBlack)
+                    {
+                        moves.Add(tentative);
+                    }
                 }
             }
             return moves;

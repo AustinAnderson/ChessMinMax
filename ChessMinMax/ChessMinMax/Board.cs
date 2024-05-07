@@ -97,11 +97,14 @@ namespace ChessMinMax
             }
             return false;
         }
-        public Move PlayComputerMove()
+        public Move? PlayComputerMove()
         {
             var move = GameMinMax.RunAlgo(board, blacksTurn: !isBlackPlayer, 2);
-            if (move == null) throw new ArgumentException("move was null");
-            board.Move(move);
+            //if (move == null) throw new ArgumentException("move was null");
+            if (move != null)
+            {
+                board.Move(move);
+            }
             return move;
         }
         public string Serialize()
